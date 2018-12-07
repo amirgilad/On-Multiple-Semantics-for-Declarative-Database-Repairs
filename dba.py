@@ -25,29 +25,46 @@ class DatabaseEngine():
 
 
 
-    def create_table(self, name):
+    def init_database(self, names, schemas, inserts):
+        assert len(names) == len(schemas)
+        for i in range(len(names)):
+            self.create_table(names[i], schemas[i])
+            if len(inserts[i]) > 0:
+                self.insert_into_table(names[i], inserts[i])
+
+
+    def create_table(self, name, schema):
         """create a table database cr"""
-        query = 'CREATE TABLE ' + name + ';'
+        query = 'CREATE TABLE ' + name + schema + ';'
         cursor = self.connection.cursor()
         cursor.execute(query)
         self.connection.commit()
-        print("Table created successfully in PostgreSQL ")
+        print("Table " + name + " created successfully in PostgreSQL ")
 
 
-    def insert_into_table(self, query):
+    def insert_into_table(self, name, insert):
         """create a table database cr"""
-        query = 'INSERT INTO ' + name + ';'
+        query = 'INSERT INTO ' + name + ' SELECT ' + insert + ';'
         cursor = self.connection.cursor()
         cursor.execute(query)
         self.connection.commit()
-        print("Table created successfully in PostgreSQL ")
+        print("Insert into table " + name + " successfully in PostgreSQL ")
 
 
-    def delete_from_table(self, query):
-        sql_delete_query = 'DELETE FROM ' + query + ';'
+    def delta_update(self, name, conds):
+        sql_delete_query = 'DELETE FROM ' + name + ' USING Delta_' + name + ' WHERE ' + conds + ';'
         cursor = self.connection.cursor()
         cursor.execute(sql_delete_query)
         self.connection.commit()
+        print("Deleted from table successfully in PostgreSQL ")
+
+
+    def drop_table(self, name):
+        res = self.execute_query("SELECT to_regclass('" + name + "');")
+        if res[0][0] != None:
+            self.execute_query('DROP TABLE ' + name)
+        print("Deleted table " + name + " successfully in PostgreSQL ")
+
 
 
     def execute_query(self, query):
@@ -62,3 +79,14 @@ class DatabaseEngine():
             results = cursor.fetchall()
 
         return results
+
+
+class Rule():
+
+    def __init__(self, conn, table_name, conds):
+        self.head = table_name
+        self.body = conds
+        self.dba = conn
+
+    def fire(self):
+        self.dba.insert_into_table(self.head, self.body)
