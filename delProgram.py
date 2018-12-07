@@ -1,7 +1,7 @@
 """Hard coded for now"""
 from dba import DatabaseEngine
 
-
+# queries
 drop_r = 'DROP TABLE R;'
 drop_p = 'DROP TABLE P;'
 drop_delta_r = 'DROP TABLE Delta_R;'
