@@ -39,6 +39,7 @@ class DatabaseEngine():
         cursor = self.connection.cursor()
         cursor.execute(query)
         self.connection.commit()
+        cursor.close()
         print("Table " + name + " created successfully in PostgreSQL ")
 
 
@@ -48,6 +49,7 @@ class DatabaseEngine():
         cursor = self.connection.cursor()
         cursor.execute(query)
         self.connection.commit()
+        cursor.close()
         print("Insert into table " + name + " successfully in PostgreSQL ")
 
 
@@ -55,8 +57,11 @@ class DatabaseEngine():
         sql_delete_query = 'DELETE FROM ' + name + ' USING Delta_' + name + ' WHERE ' + conds + ';'
         cursor = self.connection.cursor()
         cursor.execute(sql_delete_query)
+        rows_affected = cursor.rowcount
         self.connection.commit()
         print("Deleted from table successfully in PostgreSQL ")
+        cursor.close()
+        return rows_affected
 
 
     def drop_table(self, name):
@@ -78,6 +83,7 @@ class DatabaseEngine():
         if cursor.description != None:
             results = cursor.fetchall()
 
+        cursor.close()
         return results
 
 
@@ -90,3 +96,6 @@ class Rule():
 
     def fire(self):
         self.dba.insert_into_table(self.head, self.body)
+
+    # def is_different(self):
+    #     query = 'select * from ' + name_before + ' minus select * from ' + self.head + ';'
