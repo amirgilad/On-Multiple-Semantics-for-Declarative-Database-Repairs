@@ -1,11 +1,9 @@
 """Hard coded for now"""
 from dba import DatabaseEngine, Rule
+import logging
 db_conn = DatabaseEngine()
+logging.basicConfig(filename='log.log',level=logging.DEBUG)
 
-# drop DB tables
-db_conn.drop_table('R')
-db_conn.drop_table('P')
-db_conn.drop_table('Delta_R')
 
 names = ['R', 'P', 'Delta_R']
 schemas = ['(ID INT PRIMARY KEY NOT NULL, Y INT NOT NULL, Z INT NOT NULL)' for i in range(3)]
@@ -27,11 +25,14 @@ print("Has rule '\Delta_R(x) :- R(x), P(x)' changed table Delta_R? ", is_changed
 # dba.execute_query(update_delta_r)
 
 # update R
-rowcount = db_conn.delta_update('R', 'R.id = Delta_R.id')
+rowcount = db_conn.delta_update('R')
 print('Rows deleted from R during delta update: ', rowcount)
 res = db_conn.execute_query('select * from R')
 print('R is now: ', res)
 
-
+# drop DB tables
+db_conn.drop_table('R')
+db_conn.drop_table('P')
+db_conn.drop_table('Delta_R')
 
 db_conn.close_connection()

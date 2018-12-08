@@ -1,6 +1,9 @@
 import psycopg2
 import logging
 
+from psycopg2._psycopg import IntegrityError
+
+
 class DatabaseEngine():
 
     def __init__(self):
@@ -30,6 +33,7 @@ class DatabaseEngine():
         assert len(names) == len(schemas)
         for i in range(len(names)):
             self.create_table(names[i], schemas[i])
+            self.create_table('Delta_' + names[i], schemas[i])
             if len(inserts[i]) > 0:
                 self.insert_into_table(names[i], inserts[i])
 
@@ -48,8 +52,12 @@ class DatabaseEngine():
         """create a table database cr"""
         query = 'INSERT INTO ' + name + ' SELECT ' + insert + ';'
         cursor = self.connection.cursor()
-        cursor.execute(query)
-        rows_affected = cursor.rowcount
+        try:
+            cursor.execute(query)
+            rows_affected = cursor.rowcount
+        except IntegrityError:
+            rows_affected = 0
+
         self.connection.commit()
         cursor.close()
         logging.info("Insert into table " + name + " successfully in PostgreSQL ")
@@ -71,6 +79,9 @@ class DatabaseEngine():
         res = self.execute_query("SELECT to_regclass('" + name + "');")
         if res[0][0] != None:
             self.execute_query('DROP TABLE ' + name)
+        res = self.execute_query("SELECT to_regclass('Delta_" + name + "');")
+        if res[0][0] != None:
+            self.execute_query('DROP TABLE Delta_' + name)
         logging.info("Deleted table " + name + " successfully in PostgreSQL ")
 
 
