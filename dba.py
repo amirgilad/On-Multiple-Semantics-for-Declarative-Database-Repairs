@@ -14,12 +14,21 @@ class DatabaseEngine():
                                                password = "Amiris1",
                                                host = "127.0.0.1",
                                                port = "5432",
-                                               database = "cr")
+                                               database = "postgres")
+            self.connection.set_session(readonly=False, autocommit=True)
+            # self.create_semiring_functions()
+            self.execute_query('SET search_path TO public, provsql;')
 
         except (Exception, psycopg2.DatabaseError) as error :
             logging.info("Error while creating PostgreSQL table", error)
 
 
+
+    def create_semiring_functions(self):
+        with self.connection as conn:
+            cursor = conn.cursor()
+            cursor.execute(open("functions.sql", "r").read())
+            cursor.close()
 
     def close_connection(self):
         """close connection to the database cr"""
@@ -33,7 +42,7 @@ class DatabaseEngine():
         assert len(names) == len(schemas)
         for i in range(len(names)):
             self.create_table(names[i], schemas[i])
-            self.create_table('Delta_' + names[i], schemas[i])
+            # self.create_table('Delta_' + names[i], schemas[i])
             if len(inserts[i]) > 0:
                 self.insert_into_table(names[i], inserts[i])
 
@@ -44,6 +53,7 @@ class DatabaseEngine():
         cursor = self.connection.cursor()
         cursor.execute(query)
         self.connection.commit()
+        self.execute_query("SELECT add_provenance('" + name + "');")
         cursor.close()
         logging.info("Table " + name + " created successfully in PostgreSQL ")
 
@@ -107,10 +117,21 @@ class Rule():
         self.head = table_name
         self.body = conds
         self.dba = conn
+        self.is_first_time = True
 
     def fire(self):
+        if self.is_first_time:
+            changed_rows = self.fire_start()
+        else:
+            changed_rows = self.fire_cont()
+        return changed_rows
+
+    def fire_cont(self):
         changed_rows = self.dba.insert_into_table(self.head, self.body)
+        # changed_rows = self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body+ ";")
         return changed_rows > 0
 
-    # def is_different(self):
-    #     query = 'select * from ' + name_before + ' minus select * from ' + self.head + ';'
+    def fire_start(self):
+        changed_rows = self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
+        self.is_first_time = False
+        return changed_rows
