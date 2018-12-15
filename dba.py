@@ -16,7 +16,6 @@ class DatabaseEngine():
                                                port = "5432",
                                                database = "postgres")
             self.connection.set_session(readonly=False, autocommit=True)
-            # self.create_semiring_functions()
             self.execute_query('SET search_path TO public, provsql;')
 
         except (Exception, psycopg2.DatabaseError) as error :
@@ -128,8 +127,6 @@ class Rule():
         return changed
 
     def fire_cont(self):
-        # changed_rows = self.dba.insert_into_table(self.head, self.body)
-        # changed_rows = self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body+ ";")
         self.dba.execute_query("CREATE TABLE " + self.head + str(self.i) + " AS SELECT " + self.body + ";")
         changed_rows = self.dba.execute_query("INSERT INTO " + self.head + " SELECT * FROM " + self.head + str(self.i) + ";")
         self.dba.execute_query('DROP TABLE ' + self.head + str(self.i) + ';')
@@ -138,6 +135,5 @@ class Rule():
     def fire_start(self):
         self.dba.execute_query('DROP TABLE ' + self.head + ';')
         self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
-        # self.dba.execute_query("SELECT add_provenance('" + self.head + "');")
         self.is_first_time = False
         return True

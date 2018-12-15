@@ -1,6 +1,7 @@
 from dba import DatabaseEngine
 from semantics import Semantics
 import logging
+import provenanceHandler as ph
 
 logging.basicConfig(filename='log.log',level=logging.DEBUG)
 
@@ -71,6 +72,12 @@ def test_semantics_diff(is_end = True):
     # print table P
     res = db_conn.execute_query('select * from P')
     print('P IS: ', res)
+
+    res = db_conn.execute_query('select * from delta_R')
+    print('delta_R IS: ', res)
+
+    prov_map = ph.make_prov_map(res)
+    print(prov_map)
 
     db_conn.close_connection()
 

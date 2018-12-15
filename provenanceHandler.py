@@ -1,8 +1,25 @@
+import itertools
+
+
+def make_prov_map(table_rows):
+    prov_map = {}
+    for row in table_rows:
+        # tup = eval(row)
+        pre = process(row)
+        prov = get_prov(pre)
+        if row[:-2] not in prov_map:
+            prov_map[row[:-2]] = prov
+        else:
+            prov_map[row[:-2]].extend(prov)
+        # remove duplicate provenance monomials
+        prov_map[row[:-2]].sort()
+        prov_map[row[:-2]] = list(i for i, _ in itertools.groupby(prov_map[row[:-2]]))
+    return prov_map
 
 
 
-def process(str_tup):
-    tup = eval(str_tup)
+def process(tup):
+    # tup = eval(str_tup)
     prov_lsts = tup[-2].split(',')
     prov_monoms = []
     for m in prov_lsts:
@@ -36,6 +53,7 @@ def sublist(lst1, lst2):
     return ls1 == ls2 and is_equal
 
 
-p = process("(2, 'iris', 'gilad', '{[r:2f9c5b36-e122-41a4-bcb3-f10a5b084f7b:1],[r:2f9c5b36-e122-41a4-bcb3-f10a5b084f7b:2],[p:83d4cf1b-7bf3-463a-94bc-16c6305db423:3;r:2f9c5b36-e122-41a4-bcb3-f10a5b084f7b:3],[]}', '51cc0056-dc43-5a3e-b81c-15ee4e43dfa6')")
-prov = get_prov(p)
-print(prov)
+# p = process("(2, 'iris', 'gilad', '{[r:2f9c5b36-e122-41a4-bcb3-f10a5b084f7b:1],[r:2f9c5b36-e122-41a4-bcb3-f10a5b084f7b:2],[p:83d4cf1b-7bf3-463a-94bc-16c6305db423:3;r:2f9c5b36-e122-41a4-bcb3-f10a5b084f7b:3],[]}', '51cc0056-dc43-5a3e-b81c-15ee4e43dfa6')")
+# prov = get_prov(p)
+# print(prov)
+
