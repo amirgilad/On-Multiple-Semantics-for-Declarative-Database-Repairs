@@ -42,7 +42,7 @@ class DatabaseEngine():
         assert len(names) == len(schemas)
         for i in range(len(names)):
             self.create_table(names[i], schemas[i])
-            # self.create_table('Delta_' + names[i], schemas[i])
+            self.create_table('Delta_' + names[i], schemas[i])
             if len(inserts[i]) > 0:
                 self.insert_into_table(names[i], inserts[i])
 
@@ -117,21 +117,27 @@ class Rule():
         self.head = table_name
         self.body = conds
         self.dba = conn
-        self.is_first_time = True
+        self.i = 0
 
     def fire(self):
-        if self.is_first_time:
-            changed_rows = self.fire_start()
+        if self.i == 0:
+            changed = self.fire_start()
         else:
-            changed_rows = self.fire_cont()
-        return changed_rows
+            changed = self.fire_cont()
+        self.i += 1
+        return changed
 
     def fire_cont(self):
-        changed_rows = self.dba.insert_into_table(self.head, self.body)
+        # changed_rows = self.dba.insert_into_table(self.head, self.body)
         # changed_rows = self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body+ ";")
-        return changed_rows > 0
+        self.dba.execute_query("CREATE TABLE " + self.head + str(self.i) + " AS SELECT " + self.body + ";")
+        changed_rows = self.dba.execute_query("INSERT INTO " + self.head + " SELECT * FROM " + self.head + str(self.i) + ";")
+        self.dba.execute_query('DROP TABLE ' + self.head + str(self.i) + ';')
+        return changed_rows != None and changed_rows > 0
 
     def fire_start(self):
-        changed_rows = self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
+        self.dba.execute_query('DROP TABLE ' + self.head + ';')
+        self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
+        # self.dba.execute_query("SELECT add_provenance('" + self.head + "');")
         self.is_first_time = False
-        return changed_rows
+        return True

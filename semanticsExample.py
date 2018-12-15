@@ -47,6 +47,7 @@ def test_semantics_diff(is_end = True):
     db_conn.drop_table('R')
     db_conn.drop_table('P')
     db_conn.drop_table('Q')
+    db_conn.drop_table('Delta_R1')
 
     # init database
     names = ['R', 'P', 'Q']
@@ -54,24 +55,22 @@ def test_semantics_diff(is_end = True):
     inserts = [' 1 AS ID', ' 1 AS ID', ' 1 AS ID']
     db_conn.init_database(names, schemas, inserts)
 
-    # print table R
-    res = db_conn.execute_query('select * from P')
-    print('P IS: ', res)
-
     # init program and semantics
     sem = Semantics(db_conn, names)
-    sem.initRules(names, [' R.ID FROM R', ' P.ID FROM P INNER JOIN R ON P.id=R.id INNER JOIN Delta_Q ON Delta_Q.id=R.id',
-                          ' Q.ID FROM Q INNER JOIN Delta_R ON Q.id=Delta_R.id'])
+    # sem.initRules(names, [' R.ID FROM R', ' P.ID FROM P INNER JOIN R ON P.id=R.id INNER JOIN Delta_Q ON Delta_Q.id=R.id',
+    #                       ' Q.ID FROM Q INNER JOIN Delta_R ON Q.id=Delta_R.id'])
+    sem.initRules(names,
+                  [' *, where_provenance(provenance()) FROM (SELECT R.ID, R.provsql FROM R) t', ' *, where_provenance(provenance()) FROM (SELECT P.ID FROM P INNER JOIN R ON P.id=R.id INNER JOIN Delta_Q ON Delta_Q.id=R.id) t',
+                   ' *, where_provenance(provenance()) FROM (SELECT Q.ID FROM Q INNER JOIN Delta_R ON Q.id=Delta_R.id) t'])
 
     if is_end:
         sem.end_semantics()
     else:
         sem.step_semantics()
 
-    # print table R
+    # print table P
     res = db_conn.execute_query('select * from P')
     print('P IS: ', res)
-
 
     db_conn.close_connection()
 
