@@ -124,6 +124,10 @@ class Rule():
         else:
             changed = self.fire_cont()
         self.i += 1
+        # if self.head.lower() == 'delta_p':
+        #     prov = self.dba.execute_query('select R.id from R inner join delta_P on R.provsql=delta_P.R_id')
+        #     prov += self.dba.execute_query('select delta_Q.id from delta_Q inner join delta_P on delta_Q.provsql=delta_P.delta_Q_id')
+        #     print('prov of delta_P IS: ', prov)
         return changed
 
     def fire_cont(self):
