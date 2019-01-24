@@ -12,7 +12,8 @@ def makeDNF(prov_map):
         conj = conj.replace('-', '')
         dnf = dnf + conj
     dnf = dnf[5:]
-    return minimize(dnf)
+    return dnf
+    # return minimize(dnf)
 
 
 def minimize(dnf):

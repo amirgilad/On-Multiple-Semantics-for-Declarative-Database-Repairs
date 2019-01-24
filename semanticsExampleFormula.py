@@ -2,6 +2,8 @@ from dba import DatabaseEngine
 from semantics import Semantics
 import logging
 import provenanceHandler as ph
+import provFormula as pf
+
 
 logging.basicConfig(filename='log.log',level=logging.DEBUG)
 
@@ -69,32 +71,19 @@ def test_semantics_diff(is_end = True):
     #                " *, formula(provenance(), 'ID_P') FROM (SELECT P.ID FROM P INNER JOIN R ON P.id=R.id INNER JOIN Delta_Q ON Delta_Q.id=R.id) t",
     #                " *, formula(provenance(), 'ID_Q') FROM (SELECT Q.ID FROM Q INNER JOIN Delta_R ON Q.id=Delta_R.id) t"])
 
-    sem.initRules(names, [' R.ID FROM R', ' P.ID, R.provsql as R_id, delta_Q.provsql as delta_Q_id FROM P, R, Delta_Q where P.id=R.id and Delta_Q.id=R.id',
-                          ' Q.ID, delta_R.id as delta_R_id FROM Q, delta_R where Q.id=Delta_R.id'])
+    # sem.initRules(names, [' R.ID FROM R', ' P.ID, R.provsql as R_id, delta_Q.provsql as delta_Q_id FROM P, R, Delta_Q where P.id=R.id and Delta_Q.id=R.id',
+    #                       ' Q.ID, delta_R.id as delta_R_id FROM Q, delta_R where Q.id=Delta_R.id'])
+    sem.initRules(names, [' R.ID, R.provsql FROM R', 'Q.ID FROM Q', 'P.ID FROM P'])
 
     if is_end:
         sem.end_semantics()
     else:
         sem.step_semantics()
 
-    # print table P
-    res = db_conn.execute_query('select * from P')
-    print('P IS: ', res)
-
-    res = db_conn.execute_query('select * from delta_P')
-    print('delta_P IS: ', res)
-
-    # res1 = db_conn.execute_query('select * from delta_Q')
-    # print('delta_Q IS: ', res1)
-    # res += db_conn.execute_query('select * from delta_R')
-    # res += db_conn.execute_query('select * from delta_Q')
-    # prov_map = ph.make_prov_map(res)
-    # print(prov_map)
-
-
-    # for name in names:
-    #     rel_name = "ID_" + name
-    #     db_conn.drop_table(rel_name)
+    prov = ph.extract_prov(db_conn)
+    prov_map = ph.make_prov_map(prov)
+    print(prov_map)
+    pf.solve(prov_map)
 
     db_conn.close_connection()
 
@@ -104,4 +93,4 @@ def test_semantics_diff(is_end = True):
 
 # example where the two semantics don't agree
 test_semantics_diff()
-test_semantics_diff(is_end=False)
+# test_semantics_diff(is_end=False)

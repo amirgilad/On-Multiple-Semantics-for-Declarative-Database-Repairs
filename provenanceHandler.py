@@ -1,26 +1,39 @@
 import itertools
 
 
+def extract_prov(db_conn):
+    query = "SELECT table_name FROM information_schema.tables WHERE  table_type='BASE TABLE';"
+    tbls = db_conn.execute_query(query)
+    tbls = [tbls[i][0] for i in range(len(tbls)) if 'delta' in tbls[i][0]]
+    prov = []
+    for tbl in tbls:
+        res = db_conn.execute_query('select * from ' + tbl)
+        res = [tuple([tbl +'_' + str(res[i][0])] + list(res[i][1:])) for i in range(len(res))]
+        prov.extend(res)
+
+    return prov
+
+
 def make_prov_map(table_rows):
     prov_map = {}
     for row in table_rows:
         # tup = eval(row)
         pre = process(row)
         prov = get_prov(pre)
-        if row[:-2] not in prov_map:
-            prov_map[row[:-2]] = prov
+        if row[:-1] not in prov_map:
+            prov_map[row[:-1]] = prov
         else:
-            prov_map[row[:-2]].extend(prov)
+            prov_map[row[:-1]].extend(prov)
         # remove duplicate provenance monomials
-        prov_map[row[:-2]].sort()
-        prov_map[row[:-2]] = list(i for i, _ in itertools.groupby(prov_map[row[:-2]]))
+        prov_map[row[:-1]].sort()
+        prov_map[row[:-1]] = list(i for i, _ in itertools.groupby(prov_map[row[:-1]]))
     return prov_map
 
 
 
 def process(tup):
     # tup = eval(str_tup)
-    prov_lsts = tup[-2].split(',')
+    prov_lsts = tup[-1].split(',')
     prov_monoms = []
     for m in prov_lsts:
         prov = m.strip("[]{}")
