@@ -34,6 +34,7 @@ sem.initRules(names, [' R.ID FROM R', ' P.ID, R.provsql as R_id, delta_Q.provsql
                       ' Q.ID, delta_R.id as delta_R_id FROM Q, delta_R where Q.id=Delta_R.id'])
 # sem.initRules(names, [' R.ID, R.provsql FROM R', 'Q.ID FROM Q', 'P.ID FROM P'])
 
-dr.DependencyGraph(sem.prog)
-
+g = dr.DependencyGraph(sem.prog)
+print(g)
+g.remove_dependencies()
 db_conn.close_connection()
