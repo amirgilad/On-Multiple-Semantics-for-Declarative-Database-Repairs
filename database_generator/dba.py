@@ -6,7 +6,7 @@ from psycopg2._psycopg import IntegrityError
 
 class DatabaseEngine():
 
-    def __init__(self):
+    def __init__(self, db_name):
         """create a connection to the database cr"""
         self.connection = None
         try:
@@ -14,9 +14,9 @@ class DatabaseEngine():
                                                password = "Amiris1",
                                                host = "127.0.0.1",
                                                port = "5432",
-                                               database = "postgres")
+                                               database = db_name)
             self.connection.set_session(readonly=False, autocommit=True)
-            self.execute_query('SET search_path TO public, provsql;')
+            # self.execute_query('SET search_path TO public, provsql;')
 
         except (Exception, psycopg2.DatabaseError) as error :
             logging.info("Error while creating PostgreSQL table", error)

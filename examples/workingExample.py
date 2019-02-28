@@ -1,5 +1,5 @@
 """Hard coded for now"""
-from dba import DatabaseEngine, Rule
+from database_generator.dba import DatabaseEngine, Rule
 import logging
 db_conn = DatabaseEngine()
 logging.basicConfig(filename='log.log',level=logging.DEBUG)

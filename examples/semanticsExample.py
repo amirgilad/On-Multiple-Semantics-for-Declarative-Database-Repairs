@@ -1,8 +1,8 @@
-from dba import DatabaseEngine
+from database_generator.dba import DatabaseEngine
 from semantics import Semantics
 import logging
 import provenanceHandler as ph
-from provFormula import makeDNF, solve
+from provFormula import solve
 
 logging.basicConfig(filename='log.log',level=logging.DEBUG)
 

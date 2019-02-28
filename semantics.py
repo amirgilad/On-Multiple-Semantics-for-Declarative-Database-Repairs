@@ -1,4 +1,4 @@
-from dba import DatabaseEngine, Rule
+from database_generator.dba import Rule
 
 
 class Semantics():

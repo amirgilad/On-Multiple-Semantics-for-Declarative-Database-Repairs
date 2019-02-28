@@ -8,10 +8,10 @@ import psycopg2
 import datetime
 import logging
 from tt import BooleanExpression, to_cnf
-import pyparsing # make sure you have this installed
-
+import pyparsing  # make sure you have this installed
 
 from query_rewriter import add_prov
+
 logger = logging.getLogger('Runner')
 
 
@@ -34,6 +34,7 @@ def rewrite_query_prov(sql, smt2=False):
             prov_sql_str += ',\n' + prov_line
             new_sql_str += ',\n' + new_line
     return new_sql_str, prov_sql_str
+
 
 class ra_prov_runner:
 
@@ -68,7 +69,7 @@ class ra_prov_runner:
         self.time_ra_start = datetime.datetime.now()
         try:
             RATracker(configfile='psql.ini', inputfile=ra_infile.name, outputfile=ra_outfile.name,
-            # RATracker(configfile='mssql.ini', inputfile=ra_infile.name, outputfile=ra_outfile.name,
+                      # RATracker(configfile='mssql.ini', inputfile=ra_infile.name, outputfile=ra_outfile.name,
                       debug=False, verbose=True)
         except Exception as e:
             self.error_message = e
@@ -78,7 +79,7 @@ class ra_prov_runner:
             return
         self.time_ra_finish = datetime.datetime.now()
         sys.stdout = sys.__stdout__
-        
+
         ra_outfile.seek(0)
         self.sql_query = ra_outfile.read().decode()
         # logger.warning(self.sql_query)
@@ -102,23 +103,21 @@ class ra_prov_runner:
         return self.evaluate_sql()
 
 
-def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
 
+def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
     drop_queries = [
-        'DROP TABLE IF EXISTS bar;',
-        'DROP TABLE IF EXISTS beer;',
-        'DROP TABLE IF EXISTS drinker;',
-        'DROP TABLE IF EXISTS frequents;',
-        'DROP TABLE IF EXISTS likes;',
-        'DROP TABLE IF EXISTS serves;'
+        'DROP TABLE IF EXISTS author;',
+        'DROP TABLE IF EXISTS publication;',
+        'DROP TABLE IF EXISTS writes;',
+        'DROP TABLE IF EXISTS cite;',
+        'DROP TABLE IF EXISTS org;'
     ]
-    create_queries_prov = ['CREATE TABLE bar (name varchar(100), address varchar(100), prov varchar);',
-        'CREATE TABLE beer (name varchar(100), brewer varchar(100), prov varchar);',
-        'CREATE TABLE drinker (name varchar(100), address varchar(100), prov varchar);',
-        'CREATE TABLE serves (bar varchar(100), beer varchar(100), price float, prov varchar);',
-        'CREATE TABLE likes (drinker varchar(100), beer varchar(100), prov varchar);',
-        'CREATE TABLE frequents (drinker varchar(100), bar varchar(100), times_a_week int, prov varchar);'
-    ]
+    create_queries_prov = ['CREATE TABLE author (aid int(11), name varchar(60), oid int(11), papar_count int(11), citation_count int(11), prov varchar);',
+                           'CREATE TABLE publication (wid int(11), cid int(11), title varchar(100), citeid int(11), refid int(11), prov varchar);',
+                           'CREATE TABLE writes (aid int(11), wid int(11), prov varchar);',
+                           'CREATE TABLE cite (citeid int(11), refid int(11), prov varchar);',
+                           'CREATE TABLE organization (oid int(11), name varchar(100), prov varchar);'
+                           ]
 
     for dq in drop_queries:
         cur_prov.execute(dq)
@@ -127,17 +126,19 @@ def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
         cur_prov.execute(cq)
     conn_prov.commit()
 
-    relation_list = ['serves', 'beer', 'drinker', 'likes', 'frequents', 'bar']
+
+    relation_list = ['author', 'publication', 'writes', 'cite', 'organization']
 
     for r in relation_list:
-        
+
         tuple_prov_list = []
         select_query = 'SELECT * FROM {}'.format(r)
         cur_raw.execute(select_query)
         tuple_list = cur_raw.fetchall()
         cnt = 0
         for arr in tuple_list:
-            tuple_prov_list.append(','.join(map(lambda x: "'" + str(x).replace("'", "") + "'", arr)) + ",'{}'".format(r[0:2] + str(cnt)))
+            tuple_prov_list.append(
+                ','.join(map(lambda x: "'" + str(x).replace("'", "") + "'", arr)) + ",'{}'".format(r[0:2] + str(cnt)))
             cnt += 1
 
         delete_query = "DELETE FROM {};".format(r)
@@ -147,8 +148,8 @@ def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
         insert_query = 'INSERT INTO {} VALUES {}'
         n = 0
         while n < len(tuple_prov_list):
-            insert_str = ','.join(map(lambda x: '(' + str(x) + ')', tuple_prov_list[n:n+100]))
-            n+=100
+            insert_str = ','.join(map(lambda x: '(' + str(x) + ')', tuple_prov_list[n:n + 100]))
+            n += 100
 
             cur_prov.execute(insert_query.format(r, insert_str))
             conn_prov.commit()
@@ -161,13 +162,12 @@ def parse_prov(parsed, parens):
         if isinstance(parsed, str):
             return parsed
         else:
-            return parsed[1] + ' '+ parsed[0] + ' '+ parsed[2]
+            return parsed[1] + ' ' + parsed[0] + ' ' + parsed[2]
 
     for i in range(1, len(parsed)):
         res += '(' + parse_prov(parsed[i], parens) + ') ' + parsed[0] + ' '
     res = res[:-4]
     return res
-
 
 
 def parse_all_prov(prov):
@@ -195,14 +195,13 @@ def find_min_assignment(formula):
     print(sol)
     return sol
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     logging.getLogger('Runner').setLevel(logging.INFO)
     # logging.getLogger('Runner').setLevel(logging.DEBUG)
     logger_handler = logging.StreamHandler(sys.stdout)
     logger_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
     logger.addHandler(logger_handler)
-    
 
     # // Find names and addresses of drinkers who like some beer served at The Edge.
     ra_query = '''
@@ -213,13 +212,12 @@ if __name__ == '__main__':
         )
     );'''
 
-
-    conn_raw = psycopg2.connect(dbname='beers', user='postgres',password = "Amiris1",
-                                               host = "127.0.0.1",
-                                               port = "5432")
-    conn_prov = psycopg2.connect(dbname='beers_prov', user='postgres',password = "Amiris1",
-                                               host = "127.0.0.1",
-                                               port = "5432")
+    conn_raw = psycopg2.connect(dbname='beers', user='postgres', password="Amiris1",
+                                host="127.0.0.1",
+                                port="5432")
+    conn_prov = psycopg2.connect(dbname='beers_prov', user='postgres', password="Amiris1",
+                                 host="127.0.0.1",
+                                 port="5432")
     cur_raw = conn_raw.cursor()
     cur_prov = conn_prov.cursor()
 
@@ -240,7 +238,6 @@ SELECT * FROM rat6'''
 
     logger.info(rr.evaluate_sql())
 
-
     prov = rr.evaluate_sql()
     res = parse_all_prov(prov)
     find_min_assignment(res)
@@ -248,4 +245,4 @@ SELECT * FROM rat6'''
 
 
 
-        
+
