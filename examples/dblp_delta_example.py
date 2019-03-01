@@ -212,10 +212,10 @@ if __name__ == '__main__':
         )
     );'''
 
-    conn_raw = psycopg2.connect(dbname='beers', user='postgres', password="Amiris1",
+    conn_raw = psycopg2.connect(dbname='dblp_plus', user='postgres', password="Amiris1",
                                 host="127.0.0.1",
                                 port="5432")
-    conn_prov = psycopg2.connect(dbname='beers_prov', user='postgres', password="Amiris1",
+    conn_prov = psycopg2.connect(dbname='dblp_plus_prov', user='postgres', password="Amiris1",
                                  host="127.0.0.1",
                                  port="5432")
     cur_raw = conn_raw.cursor()
