@@ -110,14 +110,16 @@ def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
         'DROP TABLE IF EXISTS publication;',
         'DROP TABLE IF EXISTS writes;',
         'DROP TABLE IF EXISTS cite;',
-        'DROP TABLE IF EXISTS org;'
+        'DROP TABLE IF EXISTS organization;'
     ]
-    create_queries_prov = ['CREATE TABLE author (aid int(11), name varchar(60), oid int(11), papar_count int(11), citation_count int(11), prov varchar);',
-                           'CREATE TABLE publication (wid int(11), cid int(11), title varchar(100), citeid int(11), refid int(11), prov varchar);',
-                           'CREATE TABLE writes (aid int(11), wid int(11), prov varchar);',
-                           'CREATE TABLE cite (citeid int(11), refid int(11), prov varchar);',
-                           'CREATE TABLE organization (oid int(11), name varchar(100), prov varchar);'
-                           ]
+
+    create_queries_prov = [
+        'CREATE TABLE author (aid int, name varchar(60), oid int, prov varchar);',
+        'CREATE TABLE publication (pid int, title varchar(200), year int, prov varchar);',
+        'CREATE TABLE writes (aid int, pid int, prov varchar);',
+        'CREATE TABLE cite (citing int, cited int, prov varchar);',
+        'CREATE TABLE organization (oid int, name varchar(150), prov varchar);'
+    ]
 
     for dq in drop_queries:
         cur_prov.execute(dq)
@@ -205,10 +207,9 @@ if __name__ == '__main__':
 
     # // Find names and addresses of drinkers who like some beer served at The Edge.
     ra_query = '''
-    \\project_{name, address} (
-        drinker \\join_{name = drinker} (
-            likes \\join 
-            \\select_{bar = 'The Edge'} serves
+    \\project_{aid, name} (
+        author \\join_{oid = oid} (
+            organization \\select_{name = 'Tel Aviv University'}
         )
     );'''
 
@@ -223,24 +224,24 @@ if __name__ == '__main__':
 
     copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov)
 
-    rr = ra_prov_runner(ra_query, cur_raw, cur_prov)
-
-    logger.info(rr.evaluate_ra())
-
-    rr.sql_query = '''WITH rat0(a0, a1) AS (SELECT * FROM drinker),
-rat1(a0, a1) AS (SELECT * FROM likes),
-rat2(a0, a1, a2) AS (SELECT * FROM serves),
-rat3(a0, a1, a2) AS (SELECT * FROM rat2 WHERE rat2.a0 = 'The Edge'),
-rat4(a0, a1, a2, a3) AS (SELECT rat1.a0, rat1.a1, rat3.a0, rat3.a2 FROM rat1, rat3 WHERE rat1.a1 = rat3.a1),
-rat5(a0, a1, a2, a3, a4, a5) AS (SELECT * FROM rat0, rat4 WHERE rat0.a0 = rat4.a0),
-rat6(a0, a1) AS (SELECT DISTINCT rat5.a0, rat5.a1 FROM rat5)
-SELECT * FROM rat6'''
-
-    logger.info(rr.evaluate_sql())
-
-    prov = rr.evaluate_sql()
-    res = parse_all_prov(prov)
-    find_min_assignment(res)
+#     rr = ra_prov_runner(ra_query, cur_raw, cur_prov)
+#
+#     logger.info(rr.evaluate_ra())
+#
+#     rr.sql_query = '''WITH rat0(a0, a1) AS (SELECT * FROM drinker),
+# rat1(a0, a1) AS (SELECT * FROM likes),
+# rat2(a0, a1, a2) AS (SELECT * FROM serves),
+# rat3(a0, a1, a2) AS (SELECT * FROM rat2 WHERE rat2.a0 = 'The Edge'),
+# rat4(a0, a1, a2, a3) AS (SELECT rat1.a0, rat1.a1, rat3.a0, rat3.a2 FROM rat1, rat3 WHERE rat1.a1 = rat3.a1),
+# rat5(a0, a1, a2, a3, a4, a5) AS (SELECT * FROM rat0, rat4 WHERE rat0.a0 = rat4.a0),
+# rat6(a0, a1) AS (SELECT DISTINCT rat5.a0, rat5.a1 FROM rat5)
+# SELECT * FROM rat6'''
+#
+#     logger.info(rr.evaluate_sql())
+#
+#     prov = rr.evaluate_sql()
+#     res = parse_all_prov(prov)
+#     find_min_assignment(res)
 
 
 

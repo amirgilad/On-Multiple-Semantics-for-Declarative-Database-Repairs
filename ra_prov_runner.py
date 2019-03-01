@@ -112,6 +112,7 @@ def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
         'DROP TABLE IF EXISTS likes;',
         'DROP TABLE IF EXISTS serves;'
     ]
+
     create_queries_prov = ['CREATE TABLE bar (name varchar(100), address varchar(100), prov varchar);',
         'CREATE TABLE beer (name varchar(100), brewer varchar(100), prov varchar);',
         'CREATE TABLE drinker (name varchar(100), address varchar(100), prov varchar);',

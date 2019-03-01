@@ -7,6 +7,8 @@ def fill_tables(org_names, conn, orig_conn):
 
     relation_list = ['organization', 'author', 'publication', 'writes', 'cite', 'cite']
 
+    header_list = [['oid', 'name'], ['aid', 'name', 'oid'], ['pid', 'title', 'year'], ['aid', 'pid'], ['citing', 'cited'], ['citing', 'cited']]
+
     insert_queries = ["SELECT organization.oid, organization.name FROM organization WHERE organization.name like '%",
 
                       "select author.aid, author.name, author.oid from author, organization where " \
@@ -32,10 +34,10 @@ def fill_tables(org_names, conn, orig_conn):
             select_query = insert_queries[i] + name + "%';"
             orig_conn.execute(select_query)
             tuple_list = orig_conn.fetchall()
-            print(type(tuple_list))
 
-            with open(relation_list[i]+'.csv', 'w') as writeFile:
+            with open(relation_list[i]+'.csv', 'w', newline='') as writeFile:
                 writer = csv.writer(writeFile)
+                writer.writerow(header_list[i])
                 writer.writerows(tuple_list)
                 writeFile.close()
 
