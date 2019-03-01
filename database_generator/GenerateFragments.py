@@ -27,23 +27,23 @@ def fill_tables(org_names, conn, orig_conn):
 
     relation_list = ['organization', 'author', 'publication', 'writes', 'cite', 'cite']
 
-    insert_queries = ["SELECT * FROM organization WHERE' + 'organization.name like '%",
+    insert_queries = ["SELECT * FROM organization WHERE organization.name like '%",
 
-                      "select author. * from author, organization where " \
-                      "author.oid = organization.oid and organization.name like'%",
+                      "select author.* from author, organization where " \
+                      "author.oid = organization.oid and organization.name like '%",
 
-                      "select publication. * from publication, writes, author, organization where " \
+                      "select publication.pid, publication.title, publication.year, publication.cid, publication.jid from publication, writes, author, organization where " \
                       "publication.pid = writes.pid and author.aid = writes.aid and " \
                       "author.oid = organization.oid and organization.name like '%",
 
-                      "select * from writes where publication.pid = writes.pid and " \
+                      "select writes.aid, writes.pid from writes, publication, author, organization where publication.pid = writes.pid and " \
                       "author.aid = writes.aid and author.oid = organization.oid and " \
                       "organization.name like '%",
 
-                      "select * from cite where cite.citing = writes.pid and author.aid = writes.aid and " \
+                      "select cite.* from cite, writes, author, organization where cite.citing = writes.pid and author.aid = writes.aid and " \
                       "author.oid = organization.oid and organization.name like '%",
 
-                      "select * from cite where cite.cited = writes.pid and author.aid = writes.aid and " \
+                      "select cite.* from cite, writes, author, organization where cite.cited = writes.pid and author.aid = writes.aid and " \
                       "author.oid = organization.oid and organization.name like '%"
                       ]
 
