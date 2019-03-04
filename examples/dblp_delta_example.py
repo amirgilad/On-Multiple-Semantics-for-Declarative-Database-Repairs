@@ -1,16 +1,12 @@
 from radb.ra_tracker import RATracker
 import tempfile
-import sys
-import re
-import json
 # import pymssql
 import psycopg2
 import datetime
 import logging
 from tt import BooleanExpression, to_cnf
 import pyparsing  # make sure you have this installed
-from z3 import *
-
+from solver import *
 from query_rewriter import add_prov
 
 logger = logging.getLogger('Runner')
@@ -264,7 +260,9 @@ SELECT * FROM rat3'''
     # logger.info(rr.evaluate_sql())
 
     prov = rr.evaluate_sql()
-    print(prov)
+    # print(prov)
+
+    # appeared_symbol_list = ['a', 'b', 'c']
     # res = parse_all_prov(prov)
     # b = to_cnf(res)
     # print(b)
@@ -273,16 +271,25 @@ SELECT * FROM rat3'''
     # prov = ["""(or (and a b) (and c d))"""]
     # prov_parsed = parse_all_prov_z3(prov)
 
-    # var_lst = []
-    # for exp in prov:
-    #     var_lst += exp.replace('(', '').replace(')', '').replace('and', '').replace('or', '').split(' ')
+    var_lst = []
+    prov_all = "(and ("
+    for exp in prov:
+        var_lst += exp.replace('(', '').replace(')', '').replace('and', '').replace('or ', ' ').split(' ')
+        prov_all += exp + ", "
+    prov_all = prov_all[:-2] + "))"
+    var_lst = list(dict.fromkeys(var_lst))
+    var_lst = [x for x in var_lst if x != '']
+    print(prov_all)
     # d = {x : Bool(x) for x in var_lst if x != ''}
     #
-    print(prov[0])
-    f = Z3_parse_smtlib2_string(0, '(= a b)', 0, 0, 0, 0, 0, 0)
+    # print(prov[0])
+    # f = Z3_parse_smtlib2_string(0, '(= a b)', 0, 0, 0, 0, 0, 0)
     # f = prov_parsed
-    print(f)
-
+    # print(f)
+    vals, size = solve_boolean_formula_with_z3_smt2(prov[0], var_lst)
+    for cl in vals:
+        if isinstance(vals[cl], BoolRef) and vals[cl]:
+            print(cl)
 
 
     # au8, or1 = Bools('au8 or1')

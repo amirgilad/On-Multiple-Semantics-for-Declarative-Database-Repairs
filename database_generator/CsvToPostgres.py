@@ -27,11 +27,25 @@ for cq in create_queries:
         cursor.execute(cq)
 conn.commit()
 
-insert_queries = ["COPY author(aid,name,oid)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/author.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY publication(pid,title,year)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/publication.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY writes(aid,pid)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/writes.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY cite(citing,cited)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/cite.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY organization(oid,name)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/organization.csv' DELIMITER ',' CSV HEADER;"
+
+is_laptop = False
+
+usr = 'amirgilad' if is_laptop else 'agilad'
+path = "/home/"+usr+"/PycharmProjects/causal-rules/database_generator/"
+
+# LAPTOP
+# insert_queries = ["COPY author(aid,name,oid)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/author.csv' DELIMITER ',' CSV HEADER;",
+#                   "COPY publication(pid,title,year)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/publication.csv' DELIMITER ',' CSV HEADER;",
+#                   "COPY writes(aid,pid)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/writes.csv' DELIMITER ',' CSV HEADER;",
+#                   "COPY cite(citing,cited)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/cite.csv' DELIMITER ',' CSV HEADER;",
+#                   "COPY organization(oid,name)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/organization.csv' DELIMITER ',' CSV HEADER;"
+#                   ]
+
+insert_queries = ["COPY author(aid,name,oid)  FROM '"+ path + "author.csv' DELIMITER ',' CSV HEADER;",
+                  "COPY publication(pid,title,year)  FROM '"+ path + "publication.csv' DELIMITER ',' CSV HEADER;",
+                  "COPY writes(aid,pid)  FROM '"+ path + "writes.csv' DELIMITER ',' CSV HEADER;",
+                  "COPY cite(citing,cited)  FROM '"+ path + "cite.csv' DELIMITER ',' CSV HEADER;",
+                  "COPY organization(oid,name)  FROM '"+ path + "organization.csv' DELIMITER ',' CSV HEADER;"
                   ]
 
 for iq in insert_queries:
