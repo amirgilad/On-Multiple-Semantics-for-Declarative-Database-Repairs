@@ -268,25 +268,25 @@ SELECT * FROM rat3'''
     # print(b)
     # find_min_assignment(res)
 
-    # prov = ["""(or (and a b) (and c d))"""]
-    # prov_parsed = parse_all_prov_z3(prov)
+    # prov = ["(and (and a b1) (and c d) (and a d))"]
+    # var_lst = ['a', 'b1', 'c', 'd']
+    # vals, size = solve_boolean_formula_with_z3_smt2(prov[0], var_lst)
+    # for cl in vals:
+    #     if isinstance(vals[cl], BoolRef) and vals[cl]:
+    #         print(cl)
 
     var_lst = []
-    prov_all = "(and ("
+    prov_all = "(and "
     for exp in prov:
         var_lst += exp.replace('(', '').replace(')', '').replace('and', '').replace('or ', ' ').split(' ')
-        prov_all += exp + ", "
-    prov_all = prov_all[:-2] + "))"
+        prov_all += exp + " "
+    prov_all = prov_all[:-2] + ")"
     var_lst = list(dict.fromkeys(var_lst))
     var_lst = [x for x in var_lst if x != '']
     print(prov_all)
     # d = {x : Bool(x) for x in var_lst if x != ''}
-    #
-    # print(prov[0])
-    # f = Z3_parse_smtlib2_string(0, '(= a b)', 0, 0, 0, 0, 0, 0)
-    # f = prov_parsed
-    # print(f)
-    vals, size = solve_boolean_formula_with_z3_smt2(prov[0], var_lst)
+
+    vals, size = solve_boolean_formula_with_z3_smt2(prov_all, var_lst)
     for cl in vals:
         if isinstance(vals[cl], BoolRef) and vals[cl]:
             print(cl)
