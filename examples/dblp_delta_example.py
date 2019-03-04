@@ -9,6 +9,7 @@ import datetime
 import logging
 from tt import BooleanExpression, to_cnf
 import pyparsing  # make sure you have this installed
+from z3 import *
 
 from query_rewriter import add_prov
 
@@ -157,7 +158,7 @@ def copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov):
             conn_prov.commit()
 
 
-def parse_prov(parsed, parens):
+def parse_prov_tt(parsed, parens):
     res = ''
     is_last_layer = not any(isinstance(e, list) for e in parsed)
     if is_last_layer == True:
@@ -167,19 +168,44 @@ def parse_prov(parsed, parens):
             return parsed[1] + ' ' + parsed[0] + ' ' + parsed[2]
 
     for i in range(1, len(parsed)):
-        res += '(' + parse_prov(parsed[i], parens) + ') ' + parsed[0] + ' '
+        res += '(' + parse_prov_tt(parsed[i], parens) + ') ' + parsed[0] + ' '
     res = res[:-4]
     return res
 
-
-def parse_all_prov(prov):
+def parse_all_prov_tt(prov):
     thecontent = pyparsing.Word(pyparsing.alphanums) | 'and' | 'or'
     parens = pyparsing.nestedExpr('(', ')', content=thecontent)
     res = ''
     for p in prov:
         parsed = parens.parseString(p).asList()
-        res += '(' + parse_prov(parsed[0], parens) + ')' + ' and '
+        res += '(' + parse_prov_tt(parsed[0], parens) + ')' + ' and '
     return res[:-4]
+
+
+def parse_prov_z3(parsed, parens):
+    res = ''
+    is_last_layer = not any(isinstance(e, list) for e in parsed)
+    if is_last_layer == True:
+        if isinstance(parsed, str):
+            return "d['"+parsed+"']"
+        else:
+            op = "And" if "and" in parsed[0] else "Or"
+            return op + "(d['" + parsed[1] + "'], d['" + parsed[2] + "'])"
+
+    res += "And" if "and" in parsed[0] else "Or"
+    for i in range(1, len(parsed)):
+        res += '(' + parse_prov_z3(parsed[i], parens)
+    res = res[:-2]+ '), '
+    return res
+
+def parse_all_prov_z3(prov):
+    thecontent = pyparsing.Word(pyparsing.alphanums) | 'and' | 'or'
+    parens = pyparsing.nestedExpr('(', ')', content=thecontent)
+    res = 'And('
+    for p in prov:
+        parsed = parens.parseString(p).asList()
+        res += '(' + parse_prov_z3(parsed[0], parens) + '), '
+    return res[:-2] + ')'
 
 
 def find_min_assignment(formula):
@@ -207,9 +233,10 @@ if __name__ == '__main__':
 
     # // Find names and addresses of drinkers who like some beer served at The Edge.
     ra_query = '''
-    \\project_{aid, name} (
+    \\project_{aid, name, oid} (
         author \\join_{oid = oid} (
-            organization \\select_{name = 'Tel Aviv University'}
+            organization \\join
+             \\select_{name = 'Tel Aviv University'} organization
         )
     );'''
 
@@ -224,24 +251,54 @@ if __name__ == '__main__':
 
     copy_prov_database(conn_raw, cur_raw, conn_prov, cur_prov)
 
-#     rr = ra_prov_runner(ra_query, cur_raw, cur_prov)
-#
-#     logger.info(rr.evaluate_ra())
-#
-#     rr.sql_query = '''WITH rat0(a0, a1) AS (SELECT * FROM drinker),
-# rat1(a0, a1) AS (SELECT * FROM likes),
-# rat2(a0, a1, a2) AS (SELECT * FROM serves),
-# rat3(a0, a1, a2) AS (SELECT * FROM rat2 WHERE rat2.a0 = 'The Edge'),
-# rat4(a0, a1, a2, a3) AS (SELECT rat1.a0, rat1.a1, rat3.a0, rat3.a2 FROM rat1, rat3 WHERE rat1.a1 = rat3.a1),
-# rat5(a0, a1, a2, a3, a4, a5) AS (SELECT * FROM rat0, rat4 WHERE rat0.a0 = rat4.a0),
-# rat6(a0, a1) AS (SELECT DISTINCT rat5.a0, rat5.a1 FROM rat5)
-# SELECT * FROM rat6'''
-#
-#     logger.info(rr.evaluate_sql())
-#
-#     prov = rr.evaluate_sql()
-#     res = parse_all_prov(prov)
-#     find_min_assignment(res)
+    rr = ra_prov_runner(ra_query, cur_raw, cur_prov)
+
+    logger.info(rr.evaluate_ra())
+
+    rr.sql_query = '''WITH rat0(a0, a1, a2) AS (SELECT * FROM author),
+rat1(a0, a1) AS (SELECT * FROM organization),
+rat2(a0, a1) AS (SELECT * FROM rat1 WHERE rat1.a1 = 'Tel Aviv University'),
+rat3(a0, a1, a2) AS (SELECT rat0.a0, rat0.a1, rat0.a2 FROM rat0, rat2 WHERE rat0.a2 = rat2.a0)
+SELECT * FROM rat3'''
+
+    # logger.info(rr.evaluate_sql())
+
+    prov = rr.evaluate_sql()
+    print(prov)
+    # res = parse_all_prov(prov)
+    # b = to_cnf(res)
+    # print(b)
+    # find_min_assignment(res)
+
+    # prov = ["""(or (and a b) (and c d))"""]
+    # prov_parsed = parse_all_prov_z3(prov)
+
+    # var_lst = []
+    # for exp in prov:
+    #     var_lst += exp.replace('(', '').replace(')', '').replace('and', '').replace('or', '').split(' ')
+    # d = {x : Bool(x) for x in var_lst if x != ''}
+    #
+    print(prov[0])
+    f = Z3_parse_smtlib2_string(0, '(= a b)', 0, 0, 0, 0, 0, 0)
+    # f = prov_parsed
+    print(f)
+
+
+
+    # au8, or1 = Bools('au8 or1')
+    # d = {au8: Bool('au8'), or1: Bool('or1')}
+    # abc = """And(d[au8], d[or1]), """* 3
+    # abc = """And(""" + abc[:-2] + """)"""
+    # f = eval(abc)
+    # print(f)
+    # f = eval(prov_test[1:-1])
+
+    # s = Solver()
+    # s.add(Not(f))
+    # print (s.check())
+    # print (s.model())
+
+
 
 
 
