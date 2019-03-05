@@ -1,5 +1,20 @@
 from z3 import *
 
+
+def generate_minimal_model(prov):
+    var_lst = []
+    prov_all = "(and "
+    for i in range(len(prov)):  #
+        var_lst += prov[i].replace('(', '').replace(')', '').replace('and', '').replace('or ', ' ').split(' ')
+        prov_all += prov[i] + " "
+    prov_all = prov_all[:-1] + ")"
+    var_lst = list(dict.fromkeys(var_lst))
+    var_lst = [x for x in var_lst if x != '']
+
+    vals, size = solve_boolean_formula_with_z3_smt2(prov_all, var_lst)
+    return vals, size
+
+
 def solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list):
     declaration_str = '\n'.join(list(map(lambda x: '(declare-const {} Bool)'.format(x), appeared_symbol_list)))
     declaration_str += '\n(declare-const s Int)'

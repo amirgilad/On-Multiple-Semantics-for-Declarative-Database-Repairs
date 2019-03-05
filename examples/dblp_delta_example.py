@@ -257,53 +257,11 @@ rat2(a0, a1) AS (SELECT * FROM rat1 WHERE rat1.a1 = 'Tel Aviv University'),
 rat3(a0, a1, a2) AS (SELECT rat0.a0, rat0.a1, rat0.a2 FROM rat0, rat2 WHERE rat0.a2 = rat2.a0)
 SELECT * FROM rat3'''
 
-    # logger.info(rr.evaluate_sql())
-
     prov = rr.evaluate_sql()
-    # print(prov)
 
-    # appeared_symbol_list = ['a', 'b', 'c']
-    # res = parse_all_prov(prov)
-    # b = to_cnf(res)
-    # print(b)
-    # find_min_assignment(res)
+    vals, size = generate_minimal_model(prov)
+    print('number of true vars: ', size)
 
-    # prov = ["(and (and a b1) (and c d) (and a d))"]
-    # var_lst = ['a', 'b1', 'c', 'd']
-    # vals, size = solve_boolean_formula_with_z3_smt2(prov[0], var_lst)
-    # for cl in vals:
-    #     if isinstance(vals[cl], BoolRef) and vals[cl]:
-    #         print(cl)
-
-    var_lst = []
-    prov_all = "(and "
-    for exp in prov:
-        var_lst += exp.replace('(', '').replace(')', '').replace('and', '').replace('or ', ' ').split(' ')
-        prov_all += exp + " "
-    prov_all = prov_all[:-2] + ")"
-    var_lst = list(dict.fromkeys(var_lst))
-    var_lst = [x for x in var_lst if x != '']
-    print(prov_all)
-    # d = {x : Bool(x) for x in var_lst if x != ''}
-
-    vals, size = solve_boolean_formula_with_z3_smt2(prov_all, var_lst)
-    for cl in vals:
-        if isinstance(vals[cl], BoolRef) and vals[cl]:
-            print(cl)
-
-
-    # au8, or1 = Bools('au8 or1')
-    # d = {au8: Bool('au8'), or1: Bool('or1')}
-    # abc = """And(d[au8], d[or1]), """* 3
-    # abc = """And(""" + abc[:-2] + """)"""
-    # f = eval(abc)
-    # print(f)
-    # f = eval(prov_test[1:-1])
-
-    # s = Solver()
-    # s.add(Not(f))
-    # print (s.check())
-    # print (s.model())
 
 
 
