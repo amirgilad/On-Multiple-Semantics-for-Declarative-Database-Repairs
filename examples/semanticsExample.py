@@ -2,7 +2,7 @@ from database_generator.dba import DatabaseEngine
 from semantics import Semantics
 import logging
 import provenanceHandler as ph
-from provFormula import solve
+# from provFormula import solve
 
 logging.basicConfig(filename='log.log',level=logging.DEBUG)
 
@@ -43,7 +43,7 @@ def test_semantics_basic(is_end = True):
 
 
 def test_semantics_diff(is_end = True):
-    db_conn = DatabaseEngine()
+    db_conn = DatabaseEngine("cr")
 
     # drop DB tables
     db_conn.drop_table('R')
@@ -87,7 +87,7 @@ def test_semantics_diff(is_end = True):
     # print(prov_map)
 
     # print(makeDNF(prov_map))
-    solve(prov_map)
+    # solve(prov_map)
 
 
     db_conn.close_connection()

@@ -7,7 +7,7 @@ from psycopg2._psycopg import IntegrityError
 class DatabaseEngine():
 
     def __init__(self, db_name):
-        """create a connection to the database cr"""
+        # create a connection to the database cr
         self.connection = None
         try:
             self.connection = psycopg2.connect(user = "postgres",
@@ -21,6 +21,7 @@ class DatabaseEngine():
         except (Exception, psycopg2.DatabaseError) as error :
             logging.info("Error while creating PostgreSQL table", error)
 
+        # self.create_deltas()
 
 
     def create_semiring_functions(self):
@@ -72,16 +73,61 @@ class DatabaseEngine():
         logging.info("Insert into table " + name + " successfully in PostgreSQL ")
         return rows_affected
 
-
-    def delta_update(self, name):
-        sql_delete_query = 'DELETE FROM ' + name + ' USING Delta_' + name + ' WHERE ' + name + '.ID = ' + 'Delta_' + name + '.ID' + ';'
+    def delete(self, name, rows):
+        prefix = name[0] if name[0] != 'w' else 'a'
+        prefix2 = "" if name[0] != 'w' else 'p'
+        ps_delete_query = "DELETE FROM " + name + " WHERE " + prefix + "id = %s"
+        if prefix2:
+            ps_delete_query += " AND " + prefix2 + "id = %s"
+            rows_to_delete = [(row[0], row[1]) for row in rows]
+        else:
+            rows_to_delete = [(row[0], ) for row in rows]
         cursor = self.connection.cursor()
-        cursor.execute(sql_delete_query)
+        cursor.executemany(ps_delete_query, rows_to_delete)
         rows_affected = cursor.rowcount
         self.connection.commit()
-        logging.info("Deleted from table successfully in PostgreSQL ")
         cursor.close()
         return rows_affected
+
+    def delta_update(self, name, rows):
+        attr_num = 0 if len(rows) == 0 else len(next(iter(rows)))
+        row_shape = "(" + "%s,"*attr_num
+        row_shape = row_shape[:-1] + ")"
+        sql_insert_query = "INSERT INTO " + "Delta_" + name + " VALUES " + row_shape
+        cursor = self.connection.cursor()
+        rows_affected = 0
+        if len(rows) > 0:
+            cursor.executemany(sql_insert_query, rows)
+            rows_affected = cursor.rowcount
+            self.connection.commit()
+        cursor.close()
+        return rows_affected
+
+    def create_deltas(self):
+        create_queries_prov = [
+            'CREATE TABLE Delta_author (aid int, name varchar(60), oid int, prov varchar);',
+            'CREATE TABLE Delta_publication (pid int, title varchar(200), year int, prov varchar);',
+            'CREATE TABLE Delta_writes (aid int, pid int, prov varchar);',
+            'CREATE TABLE Delta_cite (citing int, cited int, prov varchar);',
+            'CREATE TABLE Delta_organization (oid int, name varchar(150), prov varchar);'
+        ]
+        cursor = self.connection.cursor()
+        for cq in create_queries_prov:
+            cursor.execute(cq)
+        self.connection.commit()
+        cursor.close()
+
+
+
+    # def delta_update(self, name):
+    #     sql_delete_query = 'DELETE FROM ' + name + ' USING Delta_' + name + ' WHERE ' + name + '.ID = ' + 'Delta_' + name + '.ID' + ';'
+    #     cursor = self.connection.cursor()
+    #     cursor.execute(sql_delete_query)
+    #     rows_affected = cursor.rowcount
+    #     self.connection.commit()
+    #     logging.info("Deleted from table successfully in PostgreSQL ")
+    #     cursor.close()
+    #     return rows_affected
 
 
     def drop_table(self, name):
@@ -110,34 +156,34 @@ class DatabaseEngine():
         return results
 
 
-class Rule():
-
-    def __init__(self, conn, table_name, conds):
-        self.head = table_name
-        self.body = conds
-        self.dba = conn
-        self.i = 0
-
-    def fire(self):
-        if self.i == 0:
-            changed = self.fire_start()
-        else:
-            changed = self.fire_cont()
-        self.i += 1
-        # if self.head.lower() == 'delta_p':
-        #     prov = self.dba.execute_query('select R.id from R inner join delta_P on R.provsql=delta_P.R_id')
-        #     prov += self.dba.execute_query('select delta_Q.id from delta_Q inner join delta_P on delta_Q.provsql=delta_P.delta_Q_id')
-        #     print('prov of delta_P IS: ', prov)
-        return changed
-
-    def fire_cont(self):
-        self.dba.execute_query("CREATE TABLE " + self.head + str(self.i) + " AS SELECT " + self.body + ";")
-        changed_rows = self.dba.execute_query("INSERT INTO " + self.head + " SELECT * FROM " + self.head + str(self.i) + ";")
-        self.dba.execute_query('DROP TABLE ' + self.head + str(self.i) + ';')
-        return changed_rows != None and changed_rows > 0
-
-    def fire_start(self):
-        self.dba.execute_query('DROP TABLE ' + self.head + ';')
-        self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
-        self.is_first_time = False
-        return True
+# class Rule():
+#
+#     def __init__(self, conn, table_name, conds):
+#         self.head = table_name
+#         self.body = conds
+#         self.dba = conn
+#         self.i = 0
+#
+#     def fire(self):
+#         if self.i == 0:
+#             changed = self.fire_start()
+#         else:
+#             changed = self.fire_cont()
+#         self.i += 1
+#         # if self.head.lower() == 'delta_p':
+#         #     prov = self.dba.execute_query('select R.id from R inner join delta_P on R.provsql=delta_P.R_id')
+#         #     prov += self.dba.execute_query('select delta_Q.id from delta_Q inner join delta_P on delta_Q.provsql=delta_P.delta_Q_id')
+#         #     print('prov of delta_P IS: ', prov)
+#         return changed
+#
+#     def fire_cont(self):
+#         self.dba.execute_query("CREATE TABLE " + self.head + str(self.i) + " AS SELECT " + self.body + ";")
+#         changed_rows = self.dba.execute_query("INSERT INTO " + self.head + " SELECT * FROM " + self.head + str(self.i) + ";")
+#         self.dba.execute_query('DROP TABLE ' + self.head + str(self.i) + ';')
+#         return changed_rows != None and changed_rows > 0
+#
+#     def fire_start(self):
+#         self.dba.execute_query('DROP TABLE ' + self.head + ';')
+#         self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
+#         self.is_first_time = False
+#         return True

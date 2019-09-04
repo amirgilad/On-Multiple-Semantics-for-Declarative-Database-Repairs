@@ -1,4 +1,4 @@
-from tt import apply_idempotent_law, picosat
+# from tt import apply_idempotent_law, picosat
 import itertools
 
 
@@ -21,7 +21,7 @@ def minimize(dnf):
     prev_dnf = dnf
     while res_dnf != prev_dnf:
         temp_dnf = res_dnf
-        res_dnf = apply_idempotent_law(prev_dnf)
+        # res_dnf = apply_idempotent_law(prev_dnf)
         prev_dnf = temp_dnf
     return res_dnf
 
@@ -46,7 +46,7 @@ def solve(prov_map):
     for key in prov_map:
         for lst in prov_map[key]:
             formula.append([lit_map[e] for e in lst])
-    for solution in picosat.sat_all(formula):
+    # for solution in picosat.sat_all(formula):
         # sol = [rev_map[num] if num > 0 else '-'+rev_map[-num] for num in solution]
-        sol = [rev_map[num] for num in solution if num > 0]
-        print(sol)
+        # sol = [rev_map[num] for num in solution if num > 0]
+        # print(sol)

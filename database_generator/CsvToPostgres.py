@@ -1,6 +1,6 @@
 import psycopg2
 
-conn = psycopg2.connect(dbname='dblp_plus', user='postgres',
+conn = psycopg2.connect(dbname='cr', user='postgres',
                             password="Amiris1", host="127.0.0.1", port="5432")
 cursor = conn.cursor()
 
@@ -27,11 +27,13 @@ for cq in create_queries:
         cursor.execute(cq)
 conn.commit()
 
-insert_queries = ["COPY author(aid,name,oid)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/author.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY publication(pid,title,year)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/publication.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY writes(aid,pid)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/writes.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY cite(citing,cited)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/cite.csv' DELIMITER ',' CSV HEADER;",
-                  "COPY organization(oid,name)  FROM '/home/amirgilad/PycharmProjects/causal-rules/database_generator/organization.csv' DELIMITER ',' CSV HEADER;"
+insert_queries = [
+                    # "\copy publication(pid,title,year) FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\publication.csv' DELIMITER ',' CSV HEADER;"
+                  "\copy author(aid,name,oid)  FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\author.csv' DELIMITER ',' CSV HEADER;",
+                  "\copy publication(pid,title,year)  FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\publication.csv' DELIMITER ',' CSV HEADER;",
+                  "\copy writes(aid,pid)  FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\writes.csv' DELIMITER ',' CSV HEADER;",
+                  "\copy cite(citing,cited)  FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\cite.csv' DELIMITER ',' CSV HEADER;",
+                  "\copy organization(oid,name)  FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\organization.csv' DELIMITER ',' CSV HEADER;"
                   ]
 
 for iq in insert_queries:
