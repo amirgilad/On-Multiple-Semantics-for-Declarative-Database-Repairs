@@ -123,7 +123,7 @@ class DatabaseEngine():
             self.execute_query("DELETE FROM " + name + ";")
             self.execute_query("DELETE FROM " + "delta_" + name + ";")
 
-    def load_database_tables(self, lst_names):
+    def load_database_tables(self, lst_names, is_delta=False):
         # hard coded for dblp
         schema = {
             "author": "(aid, name, oid)",
@@ -135,6 +135,8 @@ class DatabaseEngine():
         for name in lst_names:
             with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
                 cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
+                if is_delta:
+                    cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
 
 
 
