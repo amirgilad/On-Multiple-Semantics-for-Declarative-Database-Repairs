@@ -51,6 +51,11 @@ class TestEndSemantics(unittest.TestCase):
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
         end_sem = EndSemantics(db, rules, tbl_names)
 
         results = db.execute_query("SELECT * FROM author WHERE author.aid = 58525;")
@@ -64,6 +69,11 @@ class TestEndSemantics(unittest.TestCase):
         rules = [("author", "SELECT * FROM author WHERE author.name like '%m%';"), ("writes", "SELECT * FROM writes WHERE pid = 1270038;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
         end_sem = EndSemantics(db, rules, tbl_names)
 
         results = db.execute_query("SELECT * FROM author WHERE author.name like '%m%';")

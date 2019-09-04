@@ -1,6 +1,6 @@
 import psycopg2
 import logging
-
+import io
 from psycopg2._psycopg import IntegrityError
 
 
@@ -104,6 +104,7 @@ class DatabaseEngine():
         return rows_affected
 
     def create_deltas(self):
+        # hard coded for dblp
         create_queries_prov = [
             'CREATE TABLE Delta_author (aid int, name varchar(60), oid int, prov varchar);',
             'CREATE TABLE Delta_publication (pid int, title varchar(200), year int, prov varchar);',
@@ -116,6 +117,24 @@ class DatabaseEngine():
             cursor.execute(cq)
         self.connection.commit()
         cursor.close()
+
+    def delete_tables(self, lst_names):
+        for name in lst_names:
+            self.execute_query("DELETE FROM " + name + ";")
+            self.execute_query("DELETE FROM " + "delta_" + name + ";")
+
+    def load_database_tables(self, lst_names):
+        # hard coded for dblp
+        schema = {
+            "author": "(aid, name, oid)",
+            "writes": "(aid, pid)",
+            "publication": "(pid, title, year)",
+            "organization": "(oid, name)"
+        }
+        cursor = self.connection.cursor()
+        for name in lst_names:
+            with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
+                cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
 
 
 
