@@ -1,5 +1,5 @@
 from Semantics.abs_sem import *
-
+from z3 import parse_smt2_string, Optimize, Int, sat, BoolRef
 
 class IndependentSemantics(AbsSemantics):
     """This class implements independent semantics. This is the semantics of considering
@@ -69,6 +69,7 @@ class IndependentSemantics(AbsSemantics):
         return prov_rules, prov_tbls, proj
 
     def handle_assignment(self, row, example_tuples, schema, prov_tbls, rule):
+        # convert a row from the result set into an assignment of tuples
         s = 0
         str_row = [str(e) for e in row]
         ans = ("", "")
@@ -105,3 +106,33 @@ class IndependentSemantics(AbsSemantics):
                 self.provenance[assign[0]] = []
             self.provenance[assign[0]].append(assign[1:])# add assignment to the prov of this tuple
 
+    def solve_boolean_formula_with_z3_smt2(self, bf, appeared_symbol_list):
+        # Find minimum satisfying assignemnt for the boolean formula.
+        # Example:
+        # >>> bf = '(and (or a b) (not (and a c)))'
+        # >>> appeared_symbol_list = ['a', 'b', 'c']
+        # >>> solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
+        # ([b = True, a = False, c = False, s = 1], 1)
+        declaration_str = '\n'.join(list(map(lambda x: '(declare-const {} Bool)'.format(x), appeared_symbol_list)))
+        declaration_str += '\n(declare-const s Int)'
+        declaration_str += '\n(define-fun b2i ((x Bool)) Int (ite x 1 0))'
+
+        size_str = '(+ {})'.format(' '.join(list(map(lambda x: '(b2i {})'.format(x), appeared_symbol_list))))
+        assert_str = '(assert {})\n'.format(bf)
+        assert_str += '(assert (= s {}))\n(assert (> s 0))'.format(size_str)
+
+        z3_bf = parse_smt2_string(declaration_str + '\n' + assert_str)
+        opt = Optimize()
+        opt.add(z3_bf)
+        s = Int('s')
+        opt.minimize(s)
+
+        if opt.check() == sat:
+            best_model = opt.model()
+            min_size = 0
+            for cl in best_model:
+                if isinstance(best_model[cl], BoolRef) and best_model[cl]:
+                    min_size += 1
+            return best_model, min_size
+        else:
+            return None, -1

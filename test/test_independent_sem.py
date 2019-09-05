@@ -83,6 +83,19 @@ class TestIndependentSemantics(unittest.TestCase):
         assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
         self.assertTrue(all(a[0][0] == 'delta_author' for a in assignments))
 
+    def test_solve_boolean_formula_with_z3_smt2(self):
+        # test func that finds the minimum satisfying assignment to a boolean formula
+        bf = '(and (or a b) (not (and a c)))'
+        appeared_symbol_list = ['a', 'b', 'c']
+
+        rules = []
+        tbl_names = []
+        db = DatabaseEngine("cr")
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
+        self.assertTrue(all(assign in str(sol) for assign in ["a = False", "b = True", "c = False"]))
+
     def test_easy_case(self):
         # test case with one simple rule
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]
