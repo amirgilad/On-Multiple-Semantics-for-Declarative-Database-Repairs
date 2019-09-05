@@ -96,6 +96,44 @@ class TestIndependentSemantics(unittest.TestCase):
         sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
         self.assertTrue(all(assign in str(sol) for assign in ["a = False", "b = True", "c = False"]))
 
+    def test_process_provenance(self):
+        # test func that converts the assignments into the provenance of each tuple
+        rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
+        cur_prov = db.execute_query(prov_rules[0][1])
+        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
+        ind_sem.process_provenance(assignments)
+        self.assertTrue(all("delta" in k[0] for k in ind_sem.provenance))
+
+    def test_convert_to_bool_formula(self):
+        # test func that takes the provenance and converts it into a bool formula
+        rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
+        cur_prov = db.execute_query(prov_rules[0][1])
+        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
+        ind_sem.process_provenance(assignments)
+        bf = ind_sem.convert_to_bool_formula()
+        assert (len(ind_sem.prov_notations.keys()) == len(set(ind_sem.prov_notations.values())))
+        sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf, [a for a in ind_sem.prov_notations.values() if "not " not in a])
+        print(sol)
+
+
     def test_easy_case(self):
         # test case with one simple rule
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]

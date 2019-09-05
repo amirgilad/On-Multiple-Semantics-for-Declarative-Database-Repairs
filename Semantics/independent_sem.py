@@ -1,5 +1,7 @@
 from Semantics.abs_sem import *
 from z3 import parse_smt2_string, Optimize, Int, sat, BoolRef
+import random
+import string
 
 class IndependentSemantics(AbsSemantics):
     """This class implements independent semantics. This is the semantics of considering
@@ -9,8 +11,8 @@ class IndependentSemantics(AbsSemantics):
     def __init__(self, db_conn, rules, tbl_names):
         super(IndependentSemantics, self).__init__(db_conn, rules, tbl_names)
 
-        self.provenance = {}# dict in the form {delta tuple: [assign1, assign2, ...]}
-        self.prov_notations = {}# dict in the form {notation: tuple}
+        self.provenance = {}  # dict in the form {delta tuple: [assign1, assign2, ...]}
+        self.prov_notations = {}  # dict in the form {notation: tuple}
 
     def find_mss(self, schema):
         """implementation of approximation algorithm for independent semantics.
@@ -100,11 +102,42 @@ class IndependentSemantics(AbsSemantics):
         return assignments
 
     def process_provenance(self, assignments):
-        # get the provenance of all tuples
+        # get the provenance of each tuple
         for assign in assignments:
             if assign[0] not in self.provenance:
                 self.provenance[assign[0]] = []
-            self.provenance[assign[0]].append(assign[1:])# add assignment to the prov of this tuple
+            self.provenance[assign[0]].append(assign[1:])  # add assignment to the prov of this tuple
+
+    def convert_to_bool_formula(self):
+        # build the boolean formula based on the provenance
+        def random_string(string_length=10):
+            # Generate a random string of fixed length
+            letters = string.ascii_lowercase
+            return ''.join(random.choice(letters) for i in range(string_length))
+
+        bf = "(and "  # the boolean formula that will be evaluated
+        for delta_tup in self.provenance:
+            assignments = self.provenance[delta_tup]
+            if len(assignments) > 1:
+                bf += "(and "
+            for assign in assignments:
+                bf += "(or "
+                for tup in assign:
+                    if tup not in self.prov_notations:
+                        if "delta_" in tup[0] and (tup[0][6:], tup[1]) in self.prov_notations:  # tup is a delta tuple and into regular counterpart has an annotation
+                            self.prov_notations[tup] = "not " + self.prov_notations[(tup[0][6:], tup[1])]
+                        elif ("delta_" + tup[0], tup[1]) in self.prov_notations:  # symmetric case
+                            self.prov_notations[tup] = self.prov_notations[("delta_" + tup[0], tup[1])][4:]
+                        else:
+                            annotation = random_string()
+                            annotation = "not " + annotation if "delta_" in tup[0] else annotation
+                            self.prov_notations[tup] = annotation
+                    bf += self.prov_notations[tup] + " "
+                bf = bf[:-1] + ") "
+            if len(assignments) > 1:
+                bf = bf[:-1] + ") "
+
+        return bf[:-1] + ") "
 
     def solve_boolean_formula_with_z3_smt2(self, bf, appeared_symbol_list):
         # Find minimum satisfying assignemnt for the boolean formula.
