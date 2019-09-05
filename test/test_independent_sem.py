@@ -81,7 +81,7 @@ class TestIndependentSemantics(unittest.TestCase):
         prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
         cur_prov = db.execute_query(prov_rules[0][1])
         assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
-        print(assignments)
+        self.assertTrue(all(a[0][0] == 'delta_author' for a in assignments))
 
     def test_easy_case(self):
         # test case with one simple rule

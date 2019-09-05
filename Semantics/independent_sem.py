@@ -25,16 +25,23 @@ class IndependentSemantics(AbsSemantics):
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
 
+        # var to store the assignments
+        assignments = []
+
         # use end semantics to derive all delta tuples and store the provenance
         changed = True
         prev_len = 0
         while changed:
             for i in range(len(self.rules)):
-                cur_prov = self.db.execute_query(prov_rules[i][1])
-                assignments, res_tuple = self.rows_to_prov(self, cur_prov, prov_tbls[i], schema, proj, prov_rules[i])
-                self.provenance.update([(self.rules[i][0], row) for row in cur_prov])
+                cur_rows = self.db.execute_query(prov_rules[i][1])
+                cur_assignments = self.rows_to_prov(self, cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+                assignments.append(cur_assignments)
                 changed = prev_len != len(mss)
                 prev_len = len(mss)
+
+        # process provenance into a formula
+
+
         return mss
 
     def gen_prov_rules(self):
@@ -96,4 +103,5 @@ class IndependentSemantics(AbsSemantics):
         for assign in assignments:
             if assign[0] not in self.provenance:
                 self.provenance[assign[0]] = []
-            self.provenance[assign[0]].append(assign[1:])
+            self.provenance[assign[0]].append(assign[1:])# add assignment to the prov of this tuple
+
