@@ -2,6 +2,8 @@ from Semantics.abs_sem import *
 from z3 import parse_smt2_string, Optimize, Int, sat, BoolRef
 import random
 import string
+import re
+
 
 class IndependentSemantics(AbsSemantics):
     """This class implements independent semantics. This is the semantics of considering
@@ -18,7 +20,6 @@ class IndependentSemantics(AbsSemantics):
         """implementation of approximation algorithm for independent semantics.
         Store the provenance of all possible delta tuples as a CNF and find the
         smallest satisfying assignment using a SAT solver"""
-        mss = set()
 
         # delete database and reload with all possible and impossible delta tuples
         self.db.delete_tables(self.delta_tuples.keys())
@@ -32,18 +33,29 @@ class IndependentSemantics(AbsSemantics):
 
         # use end semantics to derive all delta tuples and store the provenance
         changed = True
+        derived_tuples = set()
         prev_len = 0
         while changed:
             for i in range(len(self.rules)):
                 cur_rows = self.db.execute_query(prov_rules[i][1])
-                cur_assignments = self.rows_to_prov(self, cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
-                assignments.append(cur_assignments)
-                changed = prev_len != len(mss)
-                prev_len = len(mss)
+                cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+                for assignment in cur_assignments:
+                    if assignment not in assignments:
+                        assignments.append(assignment)
+                        derived_tuples.add(assignment[0])
+            if prev_len == len(derived_tuples):
+                changed = False
+            prev_len = len(derived_tuples)
 
         # process provenance into a formula
+        self.process_provenance(assignments)
+        bf = self.convert_to_bool_formula()
 
+        # find minimum satisfying assignment
+        sol, size = self.solve_boolean_formula_with_z3_smt2(bf)
 
+        # process solution to mss
+        mss = self.convert_sat_sol_to_mss(sol)
         return mss
 
     def gen_prov_rules(self):
@@ -77,7 +89,8 @@ class IndependentSemantics(AbsSemantics):
         ans = ("", "")
         for tbl in prov_tbls:
             e = len(schema[tbl]) + s
-            attrs = ",".join(["'" + t + "'" if "\r" not in t else "'" + t[:-4] + "'" for t in str_row[s:e]])
+            # attrs = ",".join(["'" + t + "'" if "\r" not in t else "'" + t[:-4] + "'" for t in str_row[s:e]])
+            attrs = ",".join([t if "\r" not in t else t[:-4] for t in str_row[s:e]])
             txt_tbl = (tbl, "(" + attrs + ")")
             # self.prov_notations[]
             example_tuples.append(txt_tbl)
@@ -119,9 +132,9 @@ class IndependentSemantics(AbsSemantics):
         for delta_tup in self.provenance:
             assignments = self.provenance[delta_tup]
             if len(assignments) > 1:
-                bf += "(and "
-            for assign in assignments:
                 bf += "(or "
+            for assign in assignments:
+                bf += "(and "
                 for tup in assign:
                     if tup not in self.prov_notations:
                         if "delta_" in tup[0] and (tup[0][6:], tup[1]) in self.prov_notations:  # tup is a delta tuple and into regular counterpart has an annotation
@@ -137,15 +150,17 @@ class IndependentSemantics(AbsSemantics):
             if len(assignments) > 1:
                 bf = bf[:-1] + ") "
 
-        return bf[:-1] + ") "
+        return "(not " + bf[:-1] + ")) "
 
-    def solve_boolean_formula_with_z3_smt2(self, bf, appeared_symbol_list):
+    def solve_boolean_formula_with_z3_smt2(self, bf):
         # Find minimum satisfying assignemnt for the boolean formula.
         # Example:
         # >>> bf = '(and (or a b) (not (and a c)))'
         # >>> appeared_symbol_list = ['a', 'b', 'c']
         # >>> solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
         # ([b = True, a = False, c = False, s = 1], 1)
+        # print(bf)
+        appeared_symbol_list = [a for a in self.prov_notations.values() if "not " not in a]
         declaration_str = '\n'.join(list(map(lambda x: '(declare-const {} Bool)'.format(x), appeared_symbol_list)))
         declaration_str += '\n(declare-const s Int)'
         declaration_str += '\n(define-fun b2i ((x Bool)) Int (ite x 1 0))'
@@ -169,3 +184,16 @@ class IndependentSemantics(AbsSemantics):
             return best_model, min_size
         else:
             return None, -1
+
+    def convert_sat_sol_to_mss(self, sol):
+        # include in mss all literals in solution that get the value False
+        notations_mss = set()
+        s = sol.sexpr().replace("\n", "").replace("()", "")
+        literals = re.findall('\(([^)]+)', s)
+        for literal_val in literals[:-1]:
+            mid_exp = literal_val.replace("define-fun ", "").replace(" Bool", "")
+            literal, val = mid_exp.split("  ")
+            if val == " false":
+                notations_mss.add(literal)
+        mss = set([t for t in self.prov_notations if self.prov_notations[t] in notations_mss])
+        return mss
