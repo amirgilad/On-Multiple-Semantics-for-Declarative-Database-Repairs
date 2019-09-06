@@ -128,13 +128,13 @@ class IndependentSemantics(AbsSemantics):
             letters = string.ascii_lowercase
             return ''.join(random.choice(letters) for i in range(string_length))
 
-        bf = "(and "  # the boolean formula that will be evaluated
+        bf = "(or "  # the boolean formula that will be evaluated
         for delta_tup in self.provenance:
             assignments = self.provenance[delta_tup]
             if len(assignments) > 1:
                 bf += "(or "
             for assign in assignments:
-                bf += "(and "
+                bf += "(and " if len(assign) > 1 else ""
                 for tup in assign:
                     if tup not in self.prov_notations:
                         if "delta_" in tup[0] and (tup[0][6:], tup[1]) in self.prov_notations:  # tup is a delta tuple and into regular counterpart has an annotation
@@ -146,7 +146,7 @@ class IndependentSemantics(AbsSemantics):
                             annotation = "not " + annotation if "delta_" in tup[0] else annotation
                             self.prov_notations[tup] = annotation
                     bf += self.prov_notations[tup] + " "
-                bf = bf[:-1] + ") "
+                bf = bf[:-1] + ") " if len(assign) > 1 else bf[:-1] + " "
             if len(assignments) > 1:
                 bf = bf[:-1] + ") "
 
@@ -167,7 +167,7 @@ class IndependentSemantics(AbsSemantics):
 
         size_str = '(+ {})'.format(' '.join(list(map(lambda x: '(b2i {})'.format(x), appeared_symbol_list))))
         assert_str = '(assert {})\n'.format(bf)
-        assert_str += '(assert (= s {}))\n(assert (> s 0))'.format(size_str)
+        assert_str += '(assert (= s {}))\n(assert (>= s 0))'.format(size_str) # changed from (> s 0)
 
         z3_bf = parse_smt2_string(declaration_str + '\n' + assert_str)
         opt = Optimize()
@@ -190,10 +190,11 @@ class IndependentSemantics(AbsSemantics):
         notations_mss = set()
         s = sol.sexpr().replace("\n", "").replace("()", "")
         literals = re.findall('\(([^)]+)', s)
-        for literal_val in literals[:-1]:
-            mid_exp = literal_val.replace("define-fun ", "").replace(" Bool", "")
-            literal, val = mid_exp.split("  ")
-            if val == " false":
-                notations_mss.add(literal)
+        for literal_val in literals:
+            if "Int" not in literal_val:
+                mid_exp = literal_val.replace("define-fun ", "").replace(" Bool", "")
+                literal, val = mid_exp.split("  ")
+                if val == " false":
+                    notations_mss.add(literal)
         mss = set([t for t in self.prov_notations if self.prov_notations[t] in notations_mss])
         return mss

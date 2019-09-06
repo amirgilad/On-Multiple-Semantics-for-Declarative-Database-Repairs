@@ -96,6 +96,19 @@ class TestIndependentSemantics(unittest.TestCase):
         sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf)
         self.assertTrue(all(assign in str(sol) for assign in ["a = False", "b = True", "c = False"]))
 
+    def test_solve_boolean_formula_with_z3_smt2_not(self):
+        # test func that finds the minimum satisfying assignment to a boolean formula
+        bf = '(not (or a b))'
+        rules = []
+        tbl_names = []
+        db = DatabaseEngine("cr")
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        ind_sem.prov_notations = {'a': 'a', 'b': 'b'}
+        sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf)
+        print(sol)
+        self.assertTrue(all(assign in str(sol) for assign in ["a = False", "b = False"]))
+
     def test_process_provenance(self):
         # test func that converts the assignments into the provenance of each tuple
         rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
@@ -149,14 +162,12 @@ class TestIndependentSemantics(unittest.TestCase):
         results = db.execute_query("SELECT author.* FROM author  WHERE author.name like '%m%';")
         results += db.execute_query("SELECT writes.* FROM writes WHERE writes.aid = 58525;")
         mss = ind_sem.find_mss(self.schema)
-        print("size of mss is ", len(mss), "and size of results is ", len(results))
-        # mss_no_rel = [e[1] for e in mss]
-        # print(mss_no_rel)
-        # self.assertTrue(all(t in mss_no_rel for t in results))
+        # print("size of mss is ", len(mss), "and size of results is ", len(results))
+        self.assertTrue(len(mss) == len(results))
 
     def test_mss_hard_case(self):
-        # test case with two simple rules
-        rules = [("author", "SELECT * FROM author WHERE author.name like '%m%';"), ("writes", "SELECT * FROM writes WHERE pid = 1270038;")]
+        # test case with two conflicting rules
+        rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';"), ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
 
@@ -166,11 +177,12 @@ class TestIndependentSemantics(unittest.TestCase):
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
 
-        results = db.execute_query("SELECT * FROM author WHERE author.name like '%m%';")
-        results += db.execute_query("SELECT * FROM writes WHERE pid = 1270038;")
-        mss = ind_sem.find_mss()
-        mss_no_rel = [e[1] for e in mss]
-        self.assertTrue(all(t in mss_no_rel for t in results))
+        results1 = db.execute_query("SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';")
+        results2 = db.execute_query("SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';")
+        mss = ind_sem.find_mss(self.schema)
+        # print("size of mss is", len(mss), "and size of results1 is", len(results1), "and size of results2 is", len(results2))
+        # 2-approximation
+        self.assertTrue(len(mss) <= 2*min(len(results1), len(results2)))
 
     def test_mss_recursive_case(self):
         # test case with one simple rule
