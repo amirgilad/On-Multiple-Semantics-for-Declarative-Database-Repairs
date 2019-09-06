@@ -166,8 +166,8 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(len(mss) == len(results))
 
     def test_mss_hard_case(self):
-        # test case with two conflicting rules
-        rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';"), ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';")]
+        # test case with two rules with the same body
+        rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"), ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
 
@@ -177,12 +177,11 @@ class TestIndependentSemantics(unittest.TestCase):
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
 
-        results1 = db.execute_query("SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';")
-        results2 = db.execute_query("SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.name LIKE '%m%';")
+        results1 = db.execute_query("SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")
+        results2 = db.execute_query("SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")
         mss = ind_sem.find_mss(self.schema)
         # print("size of mss is", len(mss), "and size of results1 is", len(results1), "and size of results2 is", len(results2))
-        # 2-approximation
-        self.assertTrue(len(mss) <= 2*min(len(results1), len(results2)))
+        self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])   # MSS should only include the author tuple with aid = 100920
 
     def test_mss_recursive_case(self):
         # test case with one simple rule

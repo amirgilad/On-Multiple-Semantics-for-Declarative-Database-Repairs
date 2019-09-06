@@ -167,13 +167,13 @@ class IndependentSemantics(AbsSemantics):
 
         size_str = '(+ {})'.format(' '.join(list(map(lambda x: '(b2i {})'.format(x), appeared_symbol_list))))
         assert_str = '(assert {})\n'.format(bf)
-        assert_str += '(assert (= s {}))\n(assert (>= s 0))'.format(size_str) # changed from (> s 0)
+        assert_str += '(assert (= s {}))\n(assert (>= s 0))'.format(size_str)  # changed from (> s 0)
 
         z3_bf = parse_smt2_string(declaration_str + '\n' + assert_str)
         opt = Optimize()
         opt.add(z3_bf)
         s = Int('s')
-        opt.minimize(s)
+        opt.maximize(s)  # changed from opt.minimize(s)
 
         if opt.check() == sat:
             best_model = opt.model()
