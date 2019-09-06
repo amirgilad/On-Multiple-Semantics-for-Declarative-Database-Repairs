@@ -86,7 +86,7 @@ class IndependentSemantics(AbsSemantics):
             prov_rules.append((query[0], q_prov))
         return prov_rules, prov_tbls, proj
 
-    def handle_assignment(self, row, example_tuples, schema, prov_tbls, rule):
+    def handle_assignment(self, row, assignment_tuples, schema, prov_tbls, rule):
         # convert a row from the result set into an assignment of tuples
         s = 0
         str_row = [str(e) for e in row]
@@ -97,11 +97,11 @@ class IndependentSemantics(AbsSemantics):
             attrs = ",".join([t if "\r" not in t else t[:-4] for t in str_row[s:e]])
             txt_tbl = (tbl, "(" + attrs + ")")
             # self.prov_notations[]
-            example_tuples.append(txt_tbl)
+            assignment_tuples.append(txt_tbl)
             if rule[0] == txt_tbl[0]:
                 ans = ("delta_" + txt_tbl[0], txt_tbl[1])
             s = e
-        return example_tuples, ans
+        return assignment_tuples, ans
 
     def rows_to_prov(self, res, prov_tbls, schema, proj, rule):
         # separate every result row into provenance tuples

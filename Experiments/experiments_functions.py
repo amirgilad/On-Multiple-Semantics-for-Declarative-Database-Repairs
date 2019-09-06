@@ -37,12 +37,13 @@ class Experiments:
                           'importance')
               }
 
-    def __init__(self):
+    def __init__(self, rule_file):
         self.tbl_names = ["organization", "author", "publication", "writes"]
         self.db = DatabaseEngine("cr")
+        self.programs = self.read_rules(rule_file)
 
     def database_reset(self):
-        # reset the database
+        """reset the database"""
         self.db.delete_tables(self.tbl_names)
         self.db.load_database_tables(self.tbl_names)
 
@@ -74,17 +75,48 @@ class Experiments:
 
         return mss_end, mss_stage, mss_ind, runtime_end, runtime_stage, runtime_ind
 
-    def run_experiments(self, rules):
-        size_results = [["End Size", "Stage Size", "Independent Size"]]
-        containment_results = [["Stage in End", "Independent in End", "Independent in Stage"]]
-        runtime_results = [["End Runtime", "Stage Runtime", "Independent Runtime"]]
-        mss_end, mss_stage, mss_ind, runtime_end, runtime_stage, runtime_ind = self.find_mss_all_semantics(rules)
-        size_results.append([len(mss_end), len(mss_stage), len(mss_ind)])
-        containment_results.append([mss_stage <= mss_end, mss_ind <= mss_end, mss_ind <= mss_stage])
-        runtime_results.append([runtime_end, runtime_stage, runtime_ind])
+    def run_experiments(self):
+        """"runs size, containment, and runtime comparison between the semantics for all programs"""
+        size_results = [["Program Number", "End Size", "Stage Size", "Independent Size"]]
+        containment_results = [["Program Number", "Stage in End", "Independent in End", "Independent in Stage"]]
+        runtime_results = [["Program Number", "End Runtime", "Stage Runtime", "Independent Runtime"]]
 
-    def write_to_csv(fname, data):
-        with open(fname, 'w') as csvFile:
+        for i in range(len(self.programs)):
+            idx = i+1
+            rules = self.programs[i]
+            mss_end, mss_stage, mss_ind, runtime_end, runtime_stage, runtime_ind = self.find_mss_all_semantics(rules)
+            size_results.append([idx, len(mss_end), len(mss_stage), len(mss_ind)])
+            runtime_results.append([idx, runtime_end, runtime_stage, runtime_ind])
+
+            # change tuples to strings to comply with indepemedent semantics format
+            mss_end_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_end])
+            mss_stage_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_stage])
+            containment_results.append([idx, mss_stage <= mss_end, mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs])
+
+        self.write_to_csv("size_experiments.csv", size_results)
+        self.write_to_csv("containment_experiments.csv", containment_results)
+        self.write_to_csv("runtime_experiments.csv", runtime_results)
+
+    def write_to_csv(self, fname, data):
+        with open(fname, 'w', newline='') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(data)
         csvFile.close()
+
+    def read_rules(self, rule_file):
+        all_programs = []
+        with open(rule_file) as f:
+            rules = []
+            for line in f:
+                if line.strip():
+                    tbl, r = line.split("|")
+                    rules.append((tbl, r[:-2]))
+                else:
+                    all_programs.append([r for r in rules])
+                    rules = []
+            all_programs.append(rules)
+        return all_programs
+
+
+ex = Experiments("programs.txt")
+ex.run_experiments()

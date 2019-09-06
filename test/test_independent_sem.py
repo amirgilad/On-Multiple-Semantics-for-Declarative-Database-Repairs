@@ -149,7 +149,7 @@ class TestIndependentSemantics(unittest.TestCase):
 
     def test_mss_easy_case(self):
         # test case with one simple rule
-        rules = [("author", "SELECT author.* FROM author  WHERE author.name like '%m%';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
+        rules = [("author", "SELECT author.* FROM author WHERE author.name like '%m%';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
 
@@ -159,7 +159,25 @@ class TestIndependentSemantics(unittest.TestCase):
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
 
-        results = db.execute_query("SELECT author.* FROM author  WHERE author.name like '%m%';")
+        results = db.execute_query("SELECT author.* FROM author WHERE author.name like '%m%';")
+        results += db.execute_query("SELECT writes.* FROM writes WHERE writes.aid = 58525;")
+        mss = ind_sem.find_mss(self.schema)
+        # print("size of mss is ", len(mss), "and size of results is ", len(results))
+        self.assertTrue(len(mss) == len(results))
+
+    def test_mss_easy_case_2(self):
+        # test case with one simple rule
+        rules = [("author", "SELECT author.* FROM author WHERE lower(author.name) like 'zohar dvir';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+
+        results = db.execute_query("SELECT author.* FROM author WHERE lower(author.name) like 'zohar dvir';")
         results += db.execute_query("SELECT writes.* FROM writes WHERE writes.aid = 58525;")
         mss = ind_sem.find_mss(self.schema)
         # print("size of mss is ", len(mss), "and size of results is ", len(results))
