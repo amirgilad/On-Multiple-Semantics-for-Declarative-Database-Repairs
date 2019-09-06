@@ -94,7 +94,7 @@ class TestIndependentSemantics(unittest.TestCase):
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         ind_sem.prov_notations = {'a': 'a', 'b': 'b', 'c': 'c'}
         sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf)
-        self.assertTrue(all(assign in str(sol) for assign in ["a = False", "b = True", "c = False"]))
+        self.assertTrue(all(assign in str(sol) for assign in ["a = True", "b = True", "c = False"]))
 
     def test_solve_boolean_formula_with_z3_smt2_not(self):
         # test func that finds the minimum satisfying assignment to a boolean formula
@@ -176,27 +176,20 @@ class TestIndependentSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-
-        results1 = db.execute_query("SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")
-        results2 = db.execute_query("SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")
         mss = ind_sem.find_mss(self.schema)
-        # print("size of mss is", len(mss), "and size of results1 is", len(results1), "and size of results2 is", len(results2))
-        self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])   # MSS should only include the author tuple with aid = 100920
+        # MSS should only include the author tuple with aid = 100920
+        self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
 
     def test_mss_recursive_case(self):
         # test case with one simple rule
-        rules = [("author", "SELECT author.* FROM author WHERE author.name like '%m%';"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]
+        rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
 
         # reset the database
-        db.delete_tables(tbl_names)
-        db.load_database_tables(tbl_names)
+        # db.delete_tables(tbl_names)
+        # db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-
-        results = db.execute_query("SELECT author.* FROM author WHERE author.name like '%m%';")
-        results += db.execute_query("SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")
-        mss = ind_sem.find_mss()
-        mss_no_rel = [e[1] for e in mss]
-        self.assertTrue(all(t in mss_no_rel for t in results))
+        mss = ind_sem.find_mss(self.schema)
+        self.assertTrue(len(mss) == 3 and all('100920' in t[1] for t in mss))

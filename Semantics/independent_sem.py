@@ -21,9 +21,12 @@ class IndependentSemantics(AbsSemantics):
         Store the provenance of all possible delta tuples as a CNF and find the
         smallest satisfying assignment using a SAT solver"""
 
+        if not self.rules:   # verify more than 0 rules
+            return set()
+
         # delete database and reload with all possible and impossible delta tuples
-        self.db.delete_tables(self.delta_tuples.keys())
-        self.db.load_database_tables(self.delta_tuples.keys(), is_delta=True)
+        # self.db.delete_tables(self.delta_tuples.keys())
+        # self.db.load_database_tables(self.delta_tuples.keys(), is_delta=True)
 
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
@@ -62,6 +65,7 @@ class IndependentSemantics(AbsSemantics):
         """convert every rule to a rule that outputs the provenance"""
         prov_rules = []
         prov_tbls = []
+        proj = []
         for i in range(len(self.rules)):
             query = self.rules[i]
             q_parts = query[1].lower().split("from")
@@ -88,7 +92,7 @@ class IndependentSemantics(AbsSemantics):
         str_row = [str(e) for e in row]
         ans = ("", "")
         for tbl in prov_tbls:
-            e = len(schema[tbl]) + s
+            e = len(schema[tbl]) + s if 'delta_' not in tbl else len(schema[tbl[6:]]) + s
             # attrs = ",".join(["'" + t + "'" if "\r" not in t else "'" + t[:-4] + "'" for t in str_row[s:e]])
             attrs = ",".join([t if "\r" not in t else t[:-4] for t in str_row[s:e]])
             txt_tbl = (tbl, "(" + attrs + ")")
@@ -137,13 +141,13 @@ class IndependentSemantics(AbsSemantics):
                 bf += "(and " if len(assign) > 1 else ""
                 for tup in assign:
                     if tup not in self.prov_notations:
-                        if "delta_" in tup[0] and (tup[0][6:], tup[1]) in self.prov_notations:  # tup is a delta tuple and into regular counterpart has an annotation
-                            self.prov_notations[tup] = "not " + self.prov_notations[(tup[0][6:], tup[1])]
+                        if "delta_" in tup[0] and (tup[0][6:], tup[1]) in self.prov_notations:  # tup is a delta tuple and its regular counterpart has an annotation
+                            self.prov_notations[tup] = "(not " + self.prov_notations[(tup[0][6:], tup[1])] + ")"
                         elif ("delta_" + tup[0], tup[1]) in self.prov_notations:  # symmetric case
-                            self.prov_notations[tup] = self.prov_notations[("delta_" + tup[0], tup[1])][4:]
+                            self.prov_notations[tup] = self.prov_notations[("delta_" + tup[0], tup[1])][5:-1]
                         else:
                             annotation = random_string()
-                            annotation = "not " + annotation if "delta_" in tup[0] else annotation
+                            annotation = "(not " + annotation + ")" if "delta_" in tup[0] else annotation
                             self.prov_notations[tup] = annotation
                     bf += self.prov_notations[tup] + " "
                 bf = bf[:-1] + ") " if len(assign) > 1 else bf[:-1] + " "
@@ -160,7 +164,7 @@ class IndependentSemantics(AbsSemantics):
         # >>> solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
         # ([b = True, a = False, c = False, s = 1], 1)
         # print(bf)
-        appeared_symbol_list = [a for a in self.prov_notations.values() if "not " not in a]
+        appeared_symbol_list = list(set([a if "not " not in a else a[5:-1] for a in self.prov_notations.values()]))
         declaration_str = '\n'.join(list(map(lambda x: '(declare-const {} Bool)'.format(x), appeared_symbol_list)))
         declaration_str += '\n(declare-const s Int)'
         declaration_str += '\n(define-fun b2i ((x Bool)) Int (ite x 1 0))'

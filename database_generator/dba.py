@@ -106,11 +106,11 @@ class DatabaseEngine():
     def create_deltas(self):
         # hard coded for dblp
         create_queries_prov = [
-            'CREATE TABLE Delta_author (aid int, name varchar(60), oid int, prov varchar);',
-            'CREATE TABLE Delta_publication (pid int, title varchar(200), year int, prov varchar);',
-            'CREATE TABLE Delta_writes (aid int, pid int, prov varchar);',
-            'CREATE TABLE Delta_cite (citing int, cited int, prov varchar);',
-            'CREATE TABLE Delta_organization (oid int, name varchar(150), prov varchar);'
+            'CREATE TABLE Delta_author (aid int, name varchar(60), oid int);',
+            'CREATE TABLE Delta_publication (pid int, title varchar(200), year int);',
+            'CREATE TABLE Delta_writes (aid int, pid int);',
+            'CREATE TABLE Delta_cite (citing int, cited int);',
+            'CREATE TABLE Delta_organization (oid int, name varchar(150));'
         ]
         cursor = self.connection.cursor()
         for cq in create_queries_prov:
@@ -136,7 +136,7 @@ class DatabaseEngine():
             with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
                 cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
                 if is_delta:
-                    cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
+                    cursor.copy_expert("COPY Delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
 
 
 
