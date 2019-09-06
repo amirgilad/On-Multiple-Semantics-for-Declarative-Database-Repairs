@@ -1,13 +1,11 @@
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
-from radb.RALexer import RALexer
-from radb.RAParser import RAParser as RAParserBase
-from radb.RAParserVisitor import RAParserVisitor
+from old.radb import RALexer
+from old.radb.RAParser import RAParser as RAParserBase
+from old.radb import RAParserVisitor
 
-import radb.parse
-from radb import utils
-
-import sys
+from old import radb
+from old.radb import utils
 
 import logging
 logger = logging.getLogger('ra')

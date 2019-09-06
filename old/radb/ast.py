@@ -2,11 +2,11 @@ import os
 import sys
 import itertools
 
-from radb.utils import CustomJSONSerializable, lreplace
-from radb.typesys import ValType, AttrSpec, RelType, TypeSysError
-from radb.parse import RAParser as sym
-from radb.parse import literal, symbolic, sqlstr_to_str, str_to_sqlstr
-from radb.parse import statements_from_file, one_statement_from_string
+from old.radb import CustomJSONSerializable, lreplace
+from old.radb.typesys import ValType, AttrSpec, RelType, TypeSysError
+from old.radb import RAParser as sym
+from old.radb import literal, symbolic, sqlstr_to_str, str_to_sqlstr
+from old.radb import statements_from_file, one_statement_from_string
 
 import logging
 logger = logging.getLogger('ra')

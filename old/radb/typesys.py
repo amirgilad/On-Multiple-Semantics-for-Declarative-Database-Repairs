@@ -1,8 +1,8 @@
-from typing import List, Dict, Union, Optional
+from typing import List, Optional
 import copy
 import re
 
-from radb.utils import AutoNameEnum, CustomJSONSerializable
+from old.radb import AutoNameEnum, CustomJSONSerializable
 
 import logging
 logger = logging.getLogger('ra')

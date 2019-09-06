@@ -1,8 +1,6 @@
 import os
 import sys
 import configparser
-import argparse
-import atexit
 import getpass
 
 try:
@@ -12,12 +10,12 @@ except ImportError:
 else:
     _readline_available = True
 
-from radb.db import DB
-from radb.parse import ParsingError, statement_string_from_stdin, one_statement_from_string, RACompleter
-from radb.typesys import ValTypeChecker, TypeSysError
-from radb.views import ViewCollection
-import radb.utils as utils
-from radb.ast import Context, ValidationError, ExecutionError, execute_from_file
+from old.radb import DB
+from old.radb import ParsingError
+from old.radb.typesys import ValTypeChecker, TypeSysError
+from old.radb import ViewCollection
+from old import radb as utils
+from old.radb import Context, ValidationError, ExecutionError, execute_from_file
 
 import logging
 logger = logging.getLogger('ra')

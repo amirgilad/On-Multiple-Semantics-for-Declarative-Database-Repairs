@@ -25,8 +25,8 @@ class IndependentSemantics(AbsSemantics):
             return set()
 
         # delete database and reload with all possible and impossible delta tuples
-        # self.db.delete_tables(self.delta_tuples.keys())
-        # self.db.load_database_tables(self.delta_tuples.keys(), is_delta=True)
+        self.db.delete_tables(self.delta_tuples.keys())
+        self.db.load_database_tables(self.delta_tuples.keys(), is_delta=True)
 
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()

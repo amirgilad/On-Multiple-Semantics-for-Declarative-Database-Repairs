@@ -192,4 +192,5 @@ class TestIndependentSemantics(unittest.TestCase):
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         mss = ind_sem.find_mss(self.schema)
+        print(mss)
         self.assertTrue(len(mss) == 3 and all('100920' in t[1] for t in mss))

@@ -1,8 +1,6 @@
-from radb.ra_tracker import RATracker
+from old.radb import RATracker
 import tempfile
 import sys
-import re
-import json
 # import pymssql
 import psycopg2
 import datetime

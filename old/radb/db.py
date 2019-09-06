@@ -1,13 +1,8 @@
-import subprocess
-import logging
-import json
-import importlib
-
 from sqlalchemy import engine, create_engine, inspect, text
 import sqlalchemy.types
 import sqlalchemy.exc
 
-from radb.typesys import ValType
+from old.radb.typesys import ValType
 
 def sqltype_to_ratype(sqltype):
     if isinstance(sqltype, sqlalchemy.types.Boolean):
