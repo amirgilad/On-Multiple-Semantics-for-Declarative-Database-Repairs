@@ -6,14 +6,14 @@ import unittest
 class TestEndSemantics(unittest.TestCase):
 
     def test_undefined_connection(self):
-        # test no db connection
+        """test no db connection"""
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = None
         self.assertRaises(AssertionError, EndSemantics, db, rules, tbl_names)
 
     def test_no_rules(self):
-        # test no rules case. MSS supposed to be empty as db is stable
+        """test no rules case. MSS supposed to be empty as db is stable"""
         rules = []
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -47,7 +47,7 @@ class TestEndSemantics(unittest.TestCase):
     #     self.assertRaises(AssertionError, end_sem.find_mss())
 
     def test_easy_case(self):
-        # test case with one simple rule
+        """test case with one simple rule"""
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -64,7 +64,7 @@ class TestEndSemantics(unittest.TestCase):
         self.assertTrue(all(t in mss_no_rel for t in results))
 
     def test_hard_case(self):
-        # test case with one simple rule
+        """test case with one simple rule"""
         rules = [("author", "SELECT * FROM author WHERE author.name like '%m%';"), ("writes", "SELECT * FROM writes WHERE pid = 1270038;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -82,7 +82,7 @@ class TestEndSemantics(unittest.TestCase):
         self.assertTrue(all(t in mss_no_rel for t in results))
 
     def test_hard_case_2(self):
-        # test case with two dependent rules
+        """test case with two dependent rules"""
         rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")

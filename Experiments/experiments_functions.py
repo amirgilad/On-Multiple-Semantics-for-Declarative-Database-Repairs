@@ -98,12 +98,14 @@ class Experiments:
         self.write_to_csv("runtime_experiments.csv", runtime_results)
 
     def write_to_csv(self, fname, data):
+        """write rows to CSV file"""
         with open(fname, 'w', newline='') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(data)
         csvFile.close()
 
     def read_rules(self, rule_file):
+        """read programs from txt file"""
         all_programs = []
         with open(rule_file) as f:
             rules = []

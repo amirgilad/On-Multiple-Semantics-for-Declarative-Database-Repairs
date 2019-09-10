@@ -12,3 +12,8 @@ writes|SELECT writes.* FROM writes, author WHERE author.aid = 100920 AND writes.
 author|SELECT author.* FROM author WHERE author.aid = 100920;
 writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
 publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
+
+author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
+publication|SELECT publication.* FROM publication, writes, delta_author WHERE publication.pid = writes.pid AND writes.aid = delta_author.aid;

@@ -87,7 +87,7 @@ class IndependentSemantics(AbsSemantics):
         return prov_rules, prov_tbls, proj
 
     def handle_assignment(self, row, assignment_tuples, schema, prov_tbls, rule):
-        # convert a row from the result set into an assignment of tuples
+        """convert a row from the result set into an assignment of tuples"""
         s = 0
         str_row = [str(e) for e in row]
         ans = ("", "")
@@ -104,7 +104,7 @@ class IndependentSemantics(AbsSemantics):
         return assignment_tuples, ans
 
     def rows_to_prov(self, res, prov_tbls, schema, proj, rule):
-        # separate every result row into provenance tuples
+        """separate every result row into provenance tuples"""
         proj_attrs = []
         for p in proj:
             t = tuple(p.split("."))
@@ -126,7 +126,7 @@ class IndependentSemantics(AbsSemantics):
             self.provenance[assign[0]].append(assign[1:])  # add assignment to the prov of this tuple
 
     def convert_to_bool_formula(self):
-        # build the boolean formula based on the provenance
+        """build the boolean formula based on the provenance"""
         def random_string(string_length=10):
             # Generate a random string of fixed length
             letters = string.ascii_lowercase
@@ -157,12 +157,13 @@ class IndependentSemantics(AbsSemantics):
         return "(not " + bf[:-1] + ")) "
 
     def solve_boolean_formula_with_z3_smt2(self, bf):
-        # Find minimum satisfying assignemnt for the boolean formula.
+        """Find minimum satisfying assignemnt for the boolean formula.
         # Example:
         # >>> bf = '(and (or a b) (not (and a c)))'
         # >>> appeared_symbol_list = ['a', 'b', 'c']
         # >>> solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
         # ([b = True, a = False, c = False, s = 1], 1)
+        """
         # print(bf)
         appeared_symbol_list = list(set([a if "not " not in a else a[5:-1] for a in self.prov_notations.values()]))
         declaration_str = '\n'.join(list(map(lambda x: '(declare-const {} Bool)'.format(x), appeared_symbol_list)))
@@ -190,7 +191,7 @@ class IndependentSemantics(AbsSemantics):
             return None, -1
 
     def convert_sat_sol_to_mss(self, sol):
-        # include in mss all literals in solution that get the value False
+        """include in mss all literals in solution that get the value False"""
         notations_mss = set()
         s = sol.sexpr().replace("\n", "").replace("()", "")
         literals = re.findall('\(([^)]+)', s)

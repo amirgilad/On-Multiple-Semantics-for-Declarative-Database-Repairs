@@ -35,14 +35,14 @@ class TestIndependentSemantics(unittest.TestCase):
               }
 
     def test_undefined_connection(self):
-        # test no db connection
+        """test no db connection"""
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = None
         self.assertRaises(AssertionError, IndependentSemantics, db, rules, tbl_names)
 
     def test_no_rules(self):
-        # test no rules case. MSS supposed to be empty as db is stable
+        """test no rules case. MSS supposed to be empty as db is stable"""
         rules = []
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -52,7 +52,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertEqual(mss, set(), "MSS supposed to be empty! Instead its " + str(mss))
 
     def test_gen_prov_rules(self):
-        # test func that takes delta rules and turns them to rules that return provenance
+        """test func that takes delta rules and turns them to rules that return provenance"""
         rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -68,7 +68,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertEqual(func_prov_results, desired_prov_results)
 
     def test_rows_to_prov(self):
-        # test func that handles and stores the provenance of each tuple
+        """test func that handles and stores the provenance of each tuple"""
         rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -84,7 +84,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(all(a[0][0] == 'delta_author' for a in assignments))
 
     def test_solve_boolean_formula_with_z3_smt2(self):
-        # test func that finds the minimum satisfying assignment to a boolean formula
+        """test func that finds the minimum satisfying assignment to a boolean formula"""
         bf = '(and (or a b) (not (and a c)))'
 
         rules = []
@@ -97,7 +97,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(all(assign in str(sol) for assign in ["a = True", "b = True", "c = False"]))
 
     def test_solve_boolean_formula_with_z3_smt2_not(self):
-        # test func that finds the minimum satisfying assignment to a boolean formula
+        """test func that finds the minimum satisfying assignment to a boolean formula"""
         bf = '(not (or a b))'
         rules = []
         tbl_names = []
@@ -110,7 +110,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(all(assign in str(sol) for assign in ["a = False", "b = False"]))
 
     def test_process_provenance(self):
-        # test func that converts the assignments into the provenance of each tuple
+        """test func that converts the assignments into the provenance of each tuple"""
         rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -127,7 +127,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(all("delta_" in k[0] for k in ind_sem.provenance))
 
     def test_convert_to_bool_formula(self):
-        # test func that takes the provenance and converts it into a bool formula
+        """test func that takes the provenance and converts it into a bool formula"""
         rules = [("author", "SELECT author.* FROM author, writes WHERE author.name LIKE '%m%' AND author.aid = writes.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -148,7 +148,7 @@ class TestIndependentSemantics(unittest.TestCase):
         print(sol)
 
     def test_mss_easy_case(self):
-        # test case with one simple rule
+        """test case with one simple rule"""
         rules = [("author", "SELECT author.* FROM author WHERE author.name like '%m%';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -166,7 +166,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(len(mss) == len(results))
 
     def test_mss_easy_case_2(self):
-        # test case with one simple rule
+        """test case with one simple rule"""
         rules = [("author", "SELECT author.* FROM author WHERE lower(author.name) like 'zohar dvir';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -184,7 +184,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(len(mss) == len(results))
 
     def test_mss_hard_case(self):
-        # test case with two rules with the same body
+        """test case with two rules with the same body"""
         rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"), ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -199,7 +199,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
 
     def test_mss_recursive_case(self):
-        # test case with one simple rule
+        """test case with one simple rule"""
         rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
