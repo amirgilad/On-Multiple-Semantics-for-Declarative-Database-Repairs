@@ -172,7 +172,7 @@ class TestStepSemantics(unittest.TestCase):
         self.assertTrue(len(mss) == len(results))
 
     def test_mss_easy_case_2(self):
-        """test case with one simple rule"""
+        """test case with two different simple rules"""
         rules = [("author", "SELECT author.* FROM author WHERE lower(author.name) like 'zohar dvir';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -202,19 +202,19 @@ class TestStepSemantics(unittest.TestCase):
         step_sem = StepSemantics(db, rules, tbl_names)
         mss = step_sem.find_mss(self.schema)
         # MSS should only include the author tuple with aid = 100920
-        self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
+        self.assertTrue(len(mss) == 1 and 100920 in next(iter(mss))[1])
 
     def test_mss_recursive_case(self):
-        """test case with one simple rule"""
+        """test case with one rule relying on the other"""
         rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
 
         # reset the database
-        # db.delete_tables(tbl_names)
-        # db.load_database_tables(tbl_names)
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
 
         step_sem = StepSemantics(db, rules, tbl_names)
         mss = step_sem.find_mss(self.schema)
         print(mss)
-        self.assertTrue(len(mss) == 3 and all('100920' in t[1] for t in mss))
+        self.assertTrue(len(mss) == 3 and all(100920 in t[1] for t in mss))

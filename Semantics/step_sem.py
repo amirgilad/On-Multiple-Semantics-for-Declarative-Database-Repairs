@@ -37,9 +37,12 @@ class StepSemantics(AbsSemantics):
                     if assignment not in assignments:
                         assignments.append(assignment)
                         derived_tuples.add(assignment[0])
+                        self.delta_tuples[self.rules[i][0]].add(assignment[0][1])
             if prev_len == len(derived_tuples):
                 changed = False
             prev_len = len(derived_tuples)
+            for i in range(len(self.rules)):
+                self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
 
         # process provenance into a graph
         self.gen_prov_graph(assignments)
@@ -49,9 +52,6 @@ class StepSemantics(AbsSemantics):
         # and greedily find for each layer the nodes whose derivation will
         # be most beneficial to stabilizing the database
         mss = self.traverse_by_layer()
-
-
-
         return mss
 
     def gen_prov_rules(self):
@@ -86,13 +86,11 @@ class StepSemantics(AbsSemantics):
         ans = ("", "")
         for tbl in prov_tbls:
             e = len(schema[tbl]) + s if 'delta_' not in tbl else len(schema[tbl[6:]]) + s
-            # attrs = ",".join(["'" + t + "'" if "\r" not in t else "'" + t[:-4] + "'" for t in str_row[s:e]])
-            attrs = ",".join([t if "\r" not in t else t[:-4] for t in str_row[s:e]])
-            txt_tbl = (tbl, "(" + attrs + ")")
-            # self.prov_notations[]
-            assignment_tuples.append(txt_tbl)
-            if rule[0] == txt_tbl[0]:
-                ans = ("delta_" + txt_tbl[0], txt_tbl[1])
+            attrs = [t if "\r" not in t else t[:-4] for t in str_row[s:e]]
+            attrs = tuple([int(a) if a.isnumeric() else a for a in attrs])
+            assignment_tuples.append((tbl, attrs))
+            if rule[0] == tbl:
+                ans = ("delta_" + tbl, attrs)
             s = e
         return assignment_tuples, ans
 
@@ -147,7 +145,8 @@ class StepSemantics(AbsSemantics):
                         arg_max = (tup[0][6:], tup[1])
 
                 deltas_in_layer = [x for x in deltas_in_layer if x in cpg.nodes()]
-                print(len(deltas_in_layer), len(mss))
+                # print(len(deltas_in_layer), len(mss))
+            mss.add(arg_max)
         return mss
 
     def gen_updated_graph(self, previous_graph, arg_max):
@@ -159,13 +158,22 @@ class StepSemantics(AbsSemantics):
             previous_graph = self.prov_graph
         copy_prov_graph = nx.DiGraph(previous_graph)
         for e in previous_graph.edges():
-            if e[0] in previous_graph.successors(arg_max) and e[0] != ("delta_" + arg_max[0], arg_max[1]) and e[1] in previous_graph.successors(arg_max) and e[1] != ("delta_" + arg_max[0], arg_max[1]):
+            # check that both vertices in e are successors of arg_max and are not \Delta(arg_max)
+            is_legal_successor_u = e[0] in previous_graph.successors(arg_max) or (e[0] == arg_max and
+                                        e[0] not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1])))
+            is_legal_successor_v = e[1] in previous_graph.successors(arg_max) and e[1] != ("delta_" + arg_max[0], arg_max[1])
+            if is_legal_successor_u and is_legal_successor_v:
                 copy_prov_graph.remove_edge(e[0], e[1])
+                copy_prov_graph.remove_node(e[1])
+                if e[0] != arg_max:
+                    copy_prov_graph.remove_node(e[1])
+
+        copy_prov_graph.remove_nodes_from(nx.isolates(copy_prov_graph))   # remove isolated nodes from the graph
         return copy_prov_graph
 
     def divide_into_layers(self):
         """takes the provenance graph and divides it into layers for the algorithm to traverse"""
-        layers = [[] for i in range(len([x for x in self.prov_graph.nodes() if "delta_" not in x[0]]))]
+        layers = [[] for i in range(len([x for x in self.prov_graph.nodes() if "delta_" in x[0]])+1)]
         topo_sort = list(nx.topological_sort(self.prov_graph))
         top_layer = 0
         for n in topo_sort:
