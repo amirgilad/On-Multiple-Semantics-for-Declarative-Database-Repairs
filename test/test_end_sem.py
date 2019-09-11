@@ -64,7 +64,7 @@ class TestEndSemantics(unittest.TestCase):
         self.assertTrue(all(t in mss_no_rel for t in results))
 
     def test_hard_case(self):
-        """test case with one simple rule"""
+        """test case with two simple rules"""
         rules = [("author", "SELECT * FROM author WHERE author.name like '%m%';"), ("writes", "SELECT * FROM writes WHERE pid = 1270038;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")

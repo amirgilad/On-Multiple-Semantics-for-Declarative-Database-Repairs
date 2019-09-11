@@ -26,6 +26,3 @@ class EndSemantics(AbsSemantics):
         for i in range(len(self.rules)):
             self.db.delete(self.rules[i][0], self.delta_tuples[self.rules[i][0]])
         return mss
-
-    def update_delta_talbes(self):
-        pass

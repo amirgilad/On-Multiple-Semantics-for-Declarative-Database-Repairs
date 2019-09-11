@@ -7,7 +7,7 @@ import re
 
 class IndependentSemantics(AbsSemantics):
     """This class implements independent semantics. This is the semantics of considering
-    all possible assignemnts leading to delta tuples and finding the smallest set of
+    all possible assignments leading to delta tuples and finding the smallest set of
     tuples whose deletion will not enable any of the rules to be satisfied"""
 
     def __init__(self, db_conn, rules, tbl_names):
@@ -119,7 +119,7 @@ class IndependentSemantics(AbsSemantics):
         return assignments
 
     def process_provenance(self, assignments):
-        # get the provenance of each tuple
+        """get the provenance of each tuple"""
         for assign in assignments:
             if assign[0] not in self.provenance:
                 self.provenance[assign[0]] = []
