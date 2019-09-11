@@ -129,14 +129,17 @@ class StepSemantics(AbsSemantics):
         and greedily remove this vertex and all of its assignments it takes part in from the graph"""
         mss = set()   # the MSS according to the heuristic algorithm
         layers = self.divide_into_layers()   # divide the prov. DAG into layers
+        cpg = None
         for ly in layers[1:]:
             deltas_in_layer = [n for n in ly if "delta_" in n[0]]
+            mss_from_layer = set()
             arg_max = None
-            cpg = None
-            while len(deltas_in_layer) != len(mss):
+            while len(deltas_in_layer) != len(mss_from_layer):
                 if arg_max is not None:
                     mss.add(arg_max)
-                cpg = self.gen_updated_graph(cpg, arg_max)   # copy the provenance graph without the nodes removed
+                    mss_from_layer.add(arg_max)
+                # copy the provenance graph without the nodes removed
+                cpg = self.gen_updated_graph(cpg, arg_max)
                 max_b = -1000001
                 for tup in ly:
                     orig_tup = (tup[0][6:], tup[1])
@@ -146,14 +149,15 @@ class StepSemantics(AbsSemantics):
 
                 deltas_in_layer = [x for x in deltas_in_layer if x in cpg.nodes()]
                 # print(len(deltas_in_layer), len(mss))
-            mss.add(arg_max)
+            if arg_max is not None:
+                mss.add(arg_max)
         return mss
 
     def gen_updated_graph(self, previous_graph, arg_max):
         """"takes the previous prov. graph and the node just chosen for the MSS, arg_max,
         and creates a new graph without all the nodes connected to arg_max except \Delta(arg_max)"""
         if arg_max is None:
-            return nx.DiGraph(self.prov_graph)
+            return nx.DiGraph(self.prov_graph) if previous_graph is None else previous_graph
         if previous_graph is None:
             previous_graph = self.prov_graph
         copy_prov_graph = nx.DiGraph(previous_graph)
@@ -166,9 +170,10 @@ class StepSemantics(AbsSemantics):
                 copy_prov_graph.remove_edge(e[0], e[1])
                 copy_prov_graph.remove_node(e[1])
                 if e[0] != arg_max:
-                    copy_prov_graph.remove_node(e[1])
+                    copy_prov_graph.remove_node(e[0])
 
-        copy_prov_graph.remove_nodes_from(nx.isolates(copy_prov_graph))   # remove isolated nodes from the graph
+        iso = [n for n in nx.isolates(copy_prov_graph)]
+        copy_prov_graph.remove_nodes_from(iso)   # remove isolated nodes from the graph
         return copy_prov_graph
 
     def divide_into_layers(self):
