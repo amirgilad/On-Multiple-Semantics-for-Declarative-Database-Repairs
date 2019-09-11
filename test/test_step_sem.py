@@ -222,3 +222,21 @@ class TestStepSemantics(unittest.TestCase):
         mss = step_sem.find_mss(self.schema)
         print(mss)
         self.assertTrue(len(mss) == 3 and all(100920 in t[1] for t in mss))
+
+    def test_separation_from_stage(self):
+        rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"),
+        ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"),
+        ("publication", "SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;"),
+        ("publication", "SELECT publication.* FROM publication, writes, delta_author WHERE publication.pid = writes.pid AND writes.aid = delta_author.aid;")]
+
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss = step_sem.find_mss(self.schema)
+        # print(mss)
+        self.assertTrue(len(mss) == 3)

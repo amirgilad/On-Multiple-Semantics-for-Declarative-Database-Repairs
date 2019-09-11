@@ -61,48 +61,54 @@ class Experiments:
         start = time.time()
         mss_ind = ind_sem.find_mss(self.schema)
         end = time.time()
-        print("done with ind sem")
         runtime_ind = end - start
+
         # find mss for end semantics
         self.database_reset()
         start = time.time()
         mss_end = end_sem.find_mss()
         end = time.time()
-        print("done with end sem")
         runtime_end = end - start
+
         # find mss for stage semantics
         self.database_reset()
         start = time.time()
         mss_stage = stage_sem.find_mss()
         end = time.time()
-        print("done with stage sem")
+        runtime_stage = end - start
+
         # find mss for step semantics
         self.database_reset()
         start = time.time()
         mss_step = step_sem.find_mss(self.schema)
         end = time.time()
-        print("done with step sem")
-        runtime_stage = end - start
+        runtime_step = end - start
 
-        return mss_end, mss_stage, mss_ind, runtime_end, runtime_stage, runtime_ind
+        return mss_end, mss_stage, mss_step, mss_ind, runtime_end, runtime_stage, runtime_step, runtime_ind
 
     def run_experiments(self):
         """"runs size, containment, and runtime comparison between the semantics for all programs"""
-        size_results = [["Program Number", "End Size", "Stage Size", "Independent Size"]]
-        containment_results = [["Program Number", "Stage in End", "Independent in End", "Independent in Stage"]]
-        runtime_results = [["Program Number", "End Runtime", "Stage Runtime", "Independent Runtime"]]
+        size_results = [["Program Number", "End Size", "Stage Size", "Step Size", "Independent Size"]]
+        runtime_results = [["Program Number", "End Runtime", "Stage Runtime", "Step Runtime", "Independent Runtime"]]
+        containment_results = [["Program Number", "Stage in End", "Step in End", "Step in Stage", "Independent in End",
+                                "Independent in Stage", "Independent in Step"]]
 
         for i in range(len(self.programs)):
             idx = i+1
             rules = self.programs[i]
-            mss_end, mss_stage, mss_ind, runtime_end, runtime_stage, runtime_ind = self.find_mss_all_semantics(rules)
-            size_results.append([idx, len(mss_end), len(mss_stage), len(mss_ind)])
-            runtime_results.append([idx, runtime_end, runtime_stage, runtime_ind])
+            mss_end, mss_stage, mss_step, mss_ind, runtime_end, runtime_stage, runtime_step, runtime_ind = \
+                self.find_mss_all_semantics(rules)
+            size_results.append([idx, len(mss_end), len(mss_stage), len(mss_step), len(mss_ind)])
+            runtime_results.append([idx, runtime_end, runtime_stage, runtime_step, runtime_ind])
 
             # change tuples to strings to comply with independent semantics format
             mss_end_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_end])
             mss_stage_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_stage])
-            containment_results.append([idx, mss_stage <= mss_end, mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs])
+            mss_step_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_step])
+            containment_results.append([idx, mss_stage <= mss_end, mss_step <= mss_end, mss_step <= mss_stage,
+                                        mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs, mss_ind <= mss_step_strs])
+
+            print("Program ", idx, "/", len(self.programs), "completed")
 
         self.write_to_csv("size_experiments.csv", size_results)
         self.write_to_csv("containment_experiments.csv", containment_results)

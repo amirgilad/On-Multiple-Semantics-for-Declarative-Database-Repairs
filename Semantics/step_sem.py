@@ -163,14 +163,18 @@ class StepSemantics(AbsSemantics):
         copy_prov_graph = nx.DiGraph(previous_graph)
         for e in previous_graph.edges():
             # check that both vertices in e are successors of arg_max and are not \Delta(arg_max)
-            is_legal_successor_u = e[0] in previous_graph.successors(arg_max) or (e[0] == arg_max and
-                                        e[0] not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1])))
-            is_legal_successor_v = e[1] in previous_graph.successors(arg_max) and e[1] != ("delta_" + arg_max[0], arg_max[1])
+            # print("edge", e, "is contained is not delta successors?", list(previous_graph.successors(("delta_" + arg_max[0], arg_max[1]))))
+            is_legal_successor_u = (e[0] in previous_graph.successors(arg_max) and e[0] != ("delta_" + arg_max[0], arg_max[1]))\
+                                   or (e[0] == arg_max and e[0] not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1])))
+            is_legal_successor_v = (e[1] in previous_graph.successors(arg_max)) and (e[1] != ("delta_" + arg_max[0], arg_max[1]))\
+                                    and e[1] not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1]))
             if is_legal_successor_u and is_legal_successor_v:
-                copy_prov_graph.remove_edge(e[0], e[1])
-                copy_prov_graph.remove_node(e[1])
-                if e[0] != arg_max:
-                    copy_prov_graph.remove_node(e[0])
+                if copy_prov_graph.has_edge(*e):
+                    copy_prov_graph.remove_edge(e[0], e[1])
+                    if not copy_prov_graph.has_edge(("delta_" + arg_max[0], arg_max[1]), e[1]):
+                        copy_prov_graph.remove_node(e[1])
+                    if e[0] != arg_max:
+                        copy_prov_graph.remove_node(e[0])
 
         iso = [n for n in nx.isolates(copy_prov_graph)]
         copy_prov_graph.remove_nodes_from(iso)   # remove isolated nodes from the graph
