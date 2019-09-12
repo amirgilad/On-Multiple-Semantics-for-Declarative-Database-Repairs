@@ -116,7 +116,8 @@ class StepSemantics(AbsSemantics):
             self.prov_graph.add_edges_from([(t, assign[0]) for t in assign[1:]])
 
     def compute_benefits_and_removed_flags(self):
-        """compute the benefits of all nodes in the prov. graph"""
+        """compute the benefits of all nodes in the prov. graph
+        and initialize the "removed" field tracking the removal of each vertex"""
         for n in self.prov_graph.nodes():
             self.prov_graph.node[n]["removed"] = False
             if "delta_" not in n[0]:
@@ -130,7 +131,6 @@ class StepSemantics(AbsSemantics):
         and greedily remove this vertex and all of its assignments it takes part in from the graph"""
         mss = set()   # the MSS according to the heuristic algorithm
         layers = self.divide_into_layers()   # divide the prov. DAG into layers
-        # cpg = None
         for ly in layers[1:]:
             deltas_in_layer = [n for n in ly if "delta_" in n[0]]
             mss_from_layer = set()
@@ -139,46 +139,18 @@ class StepSemantics(AbsSemantics):
                 if arg_max is not None:
                     mss.add(arg_max)
                     mss_from_layer.add(arg_max)
-                # copy the provenance graph without the nodes removed
-                # cpg = self.gen_updated_graph(cpg, arg_max)
-                start = time.time()
                 self.gen_updated_graph(arg_max)
-                end = time.time()
-                print("time to update graph", end-start)
                 max_b = -1000001
                 for tup in ly:
                     orig_tup = (tup[0][6:], tup[1])
-                    # if tup in cpg.nodes() and orig_tup not in mss and cpg.node[orig_tup]["benefit"] > max_b:
-                    #     max_b = cpg.node[(tup[0][6:], tup[1])]["benefit"]
-                    #     arg_max = (tup[0][6:], tup[1])
                     if self.prov_graph.node[tup]["removed"] is False and orig_tup not in mss and self.prov_graph.node[orig_tup]["benefit"] > max_b:
                         max_b = self.prov_graph.node[(tup[0][6:], tup[1])]["benefit"]
                         arg_max = (tup[0][6:], tup[1])
-                # deltas_in_layer = [x for x in deltas_in_layer if x in cpg.nodes()]
                 deltas_in_layer = [x for x in deltas_in_layer if self.prov_graph.node[x]["removed"] is False]
                 # print(len(deltas_in_layer), len(mss))
             if arg_max is not None:
                 mss.add(arg_max)
         return mss
-
-    # def gen_updated_graph(self, previous_graph, arg_max):
-    #     """"takes the previous prov. graph and the node just chosen for the MSS, arg_max,
-    #     and creates a new graph without all the nodes connected to arg_max except \Delta(arg_max)"""
-    #     if arg_max is None:
-    #         return self.prov_graph if previous_graph is None else previous_graph
-    #     if previous_graph is None:
-    #         previous_graph = self.prov_graph
-    #     start = time.time()
-    #     copy_prov_graph = nx.DiGraph(previous_graph)
-    #     end = time.time()
-    #     print("time for copy graph", end-start)
-    #     for n in previous_graph.successors(arg_max):
-    #         # check that the vertex is not a successor of \Delta(arg_max) or \Delta(arg_max) itself
-    #         is_legal_successor = (n != ("delta_" + arg_max[0], arg_max[1])) \
-    #                                        and (n not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1])))
-    #         if is_legal_successor:
-    #             copy_prov_graph.remove_node(n)
-    #     return copy_prov_graph
 
     def gen_updated_graph(self, arg_max):
         """"takes the previous prov. graph and the node just chosen for the MSS, arg_max,
