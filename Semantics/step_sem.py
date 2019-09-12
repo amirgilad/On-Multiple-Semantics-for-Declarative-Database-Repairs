@@ -46,7 +46,7 @@ class StepSemantics(AbsSemantics):
 
         # process provenance into a graph
         self.gen_prov_graph(assignments)
-        self.compute_benefits()
+        self.compute_benefits_and_removed_flags()
 
         # the "heart" of the algorithm. Traverse the prov. graph by layer
         # and greedily find for each layer the nodes whose derivation will
@@ -115,9 +115,10 @@ class StepSemantics(AbsSemantics):
             # add edges from deriving tuples to the result tuple
             self.prov_graph.add_edges_from([(t, assign[0]) for t in assign[1:]])
 
-    def compute_benefits(self):
+    def compute_benefits_and_removed_flags(self):
         """compute the benefits of all nodes in the prov. graph"""
         for n in self.prov_graph.nodes():
+            self.prov_graph.node[n]["removed"] = False
             if "delta_" not in n[0]:
                 c_n = self.prov_graph.out_degree(n)
                 d_n = self.prov_graph.out_degree(("delta_" + n[0], n[1])) if ("delta_" + n[0], n[1]) in self.prov_graph.nodes else 100000
@@ -129,7 +130,7 @@ class StepSemantics(AbsSemantics):
         and greedily remove this vertex and all of its assignments it takes part in from the graph"""
         mss = set()   # the MSS according to the heuristic algorithm
         layers = self.divide_into_layers()   # divide the prov. DAG into layers
-        cpg = None
+        # cpg = None
         for ly in layers[1:]:
             deltas_in_layer = [n for n in ly if "delta_" in n[0]]
             mss_from_layer = set()
@@ -139,46 +140,57 @@ class StepSemantics(AbsSemantics):
                     mss.add(arg_max)
                     mss_from_layer.add(arg_max)
                 # copy the provenance graph without the nodes removed
-                cpg = self.gen_updated_graph(cpg, arg_max)
+                # cpg = self.gen_updated_graph(cpg, arg_max)
+                start = time.time()
+                self.gen_updated_graph(arg_max)
+                end = time.time()
+                print("time to update graph", end-start)
                 max_b = -1000001
                 for tup in ly:
                     orig_tup = (tup[0][6:], tup[1])
-                    if tup in cpg.nodes() and orig_tup not in mss and cpg.node[orig_tup]["benefit"] > max_b:
-                        max_b = cpg.node[(tup[0][6:], tup[1])]["benefit"]
+                    # if tup in cpg.nodes() and orig_tup not in mss and cpg.node[orig_tup]["benefit"] > max_b:
+                    #     max_b = cpg.node[(tup[0][6:], tup[1])]["benefit"]
+                    #     arg_max = (tup[0][6:], tup[1])
+                    if self.prov_graph.node[tup]["removed"] is False and orig_tup not in mss and self.prov_graph.node[orig_tup]["benefit"] > max_b:
+                        max_b = self.prov_graph.node[(tup[0][6:], tup[1])]["benefit"]
                         arg_max = (tup[0][6:], tup[1])
-
-                deltas_in_layer = [x for x in deltas_in_layer if x in cpg.nodes()]
+                # deltas_in_layer = [x for x in deltas_in_layer if x in cpg.nodes()]
+                deltas_in_layer = [x for x in deltas_in_layer if self.prov_graph.node[x]["removed"] is False]
                 # print(len(deltas_in_layer), len(mss))
             if arg_max is not None:
                 mss.add(arg_max)
         return mss
 
-    def gen_updated_graph(self, previous_graph, arg_max):
+    # def gen_updated_graph(self, previous_graph, arg_max):
+    #     """"takes the previous prov. graph and the node just chosen for the MSS, arg_max,
+    #     and creates a new graph without all the nodes connected to arg_max except \Delta(arg_max)"""
+    #     if arg_max is None:
+    #         return self.prov_graph if previous_graph is None else previous_graph
+    #     if previous_graph is None:
+    #         previous_graph = self.prov_graph
+    #     start = time.time()
+    #     copy_prov_graph = nx.DiGraph(previous_graph)
+    #     end = time.time()
+    #     print("time for copy graph", end-start)
+    #     for n in previous_graph.successors(arg_max):
+    #         # check that the vertex is not a successor of \Delta(arg_max) or \Delta(arg_max) itself
+    #         is_legal_successor = (n != ("delta_" + arg_max[0], arg_max[1])) \
+    #                                        and (n not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1])))
+    #         if is_legal_successor:
+    #             copy_prov_graph.remove_node(n)
+    #     return copy_prov_graph
+
+    def gen_updated_graph(self, arg_max):
         """"takes the previous prov. graph and the node just chosen for the MSS, arg_max,
         and creates a new graph without all the nodes connected to arg_max except \Delta(arg_max)"""
         if arg_max is None:
-            return nx.DiGraph(self.prov_graph) if previous_graph is None else previous_graph
-        if previous_graph is None:
-            previous_graph = self.prov_graph
-        copy_prov_graph = nx.DiGraph(previous_graph)
-        for e in previous_graph.edges():
-            # check that both vertices in e are successors of arg_max and are not \Delta(arg_max)
-            # print("edge", e, "is contained is not delta successors?", list(previous_graph.successors(("delta_" + arg_max[0], arg_max[1]))))
-            is_legal_successor_u = (e[0] in previous_graph.successors(arg_max) and e[0] != ("delta_" + arg_max[0], arg_max[1]))\
-                                   or (e[0] == arg_max and e[0] not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1])))
-            is_legal_successor_v = (e[1] in previous_graph.successors(arg_max)) and (e[1] != ("delta_" + arg_max[0], arg_max[1]))\
-                                    and e[1] not in previous_graph.successors(("delta_" + arg_max[0], arg_max[1]))
-            if is_legal_successor_u and is_legal_successor_v:
-                if copy_prov_graph.has_edge(*e):
-                    copy_prov_graph.remove_edge(e[0], e[1])
-                    if not copy_prov_graph.has_edge(("delta_" + arg_max[0], arg_max[1]), e[1]):
-                        copy_prov_graph.remove_node(e[1])
-                    if e[0] != arg_max:
-                        copy_prov_graph.remove_node(e[0])
-
-        iso = [n for n in nx.isolates(copy_prov_graph)]
-        copy_prov_graph.remove_nodes_from(iso)   # remove isolated nodes from the graph
-        return copy_prov_graph
+            return self.prov_graph
+        for n in self.prov_graph.successors(arg_max):
+            # check that the vertex is not a successor of \Delta(arg_max) or \Delta(arg_max) itself
+            is_legal_successor = (n != ("delta_" + arg_max[0], arg_max[1])) \
+                                 and (n not in self.prov_graph.successors(("delta_" + arg_max[0], arg_max[1])))
+            if is_legal_successor:
+                self.prov_graph.node[n]["removed"] = True
 
     def divide_into_layers(self):
         """takes the provenance graph and divides it into layers for the algorithm to traverse"""

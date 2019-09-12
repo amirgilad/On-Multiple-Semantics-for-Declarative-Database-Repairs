@@ -1,13 +1,13 @@
 author|SELECT author.* FROM author  WHERE lower(author.name) like 'zohar dvir';
 writes|SELECT writes.* FROM writes WHERE writes.aid = 58525;
 
+writes|SELECT writes.* FROM writes, author WHERE author.aid = 100920 AND writes.aid = author.aid;
+
 author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
 writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
 
 author|SELECT author.* FROM author WHERE author.aid = 100920;
 writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
-
-writes|SELECT writes.* FROM writes, author WHERE author.aid = 100920 AND writes.aid = author.aid;
 
 author|SELECT author.* FROM author WHERE author.aid = 100920;
 writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
@@ -17,3 +17,11 @@ author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND aut
 writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
 publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
 publication|SELECT publication.* FROM publication, writes, delta_author WHERE publication.pid = writes.pid AND writes.aid = delta_author.aid;
+
+organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
+author|SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;
+writes|SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;
+publication|SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;
+
+author|SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+organization|SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;

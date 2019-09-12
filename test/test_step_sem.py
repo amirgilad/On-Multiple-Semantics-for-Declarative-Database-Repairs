@@ -118,7 +118,7 @@ class TestStepSemantics(unittest.TestCase):
         cur_prov = db.execute_query(prov_rules[0][1])
         assignments = step_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
         step_sem.gen_prov_graph(assignments)
-        step_sem.compute_benefits()
+        step_sem.compute_benefits_and_removed_flags()
         self.assertTrue(all([step_sem.prov_graph.node[v]['benefit'] >= -100000 for v in step_sem.prov_graph.nodes()]))
 
     def test_traverse_by_layer(self):
@@ -136,7 +136,7 @@ class TestStepSemantics(unittest.TestCase):
         cur_prov = db.execute_query(prov_rules[0][1])
         assignments = step_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
         step_sem.gen_prov_graph(assignments)
-        step_sem.compute_benefits()
+        step_sem.compute_benefits_and_removed_flags()
         mss = step_sem.traverse_by_layer()
         self.assertTrue(len(mss) == 255 and all(t[0] == "author" for t in mss))
 
@@ -238,5 +238,24 @@ class TestStepSemantics(unittest.TestCase):
 
         step_sem = StepSemantics(db, rules, tbl_names)
         mss = step_sem.find_mss(self.schema)
-        # print(mss)
+        print(mss)
         self.assertTrue(len(mss) == 3)
+
+    def test_large_mss(self):
+        rules = [("organization", "SELECT organization.* FROM organization WHERE organization.oid = 16045;"),
+                    ("author", "SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;"),
+                    ("writes", "SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;"),
+                    ("publication", "SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;")]
+
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss = step_sem.find_mss(self.schema)
+        print("size of MSS should be the entire DB. Actual size:", len(mss))
+        self.assertTrue(len(mss) > 27000)
+

@@ -62,6 +62,7 @@ class Experiments:
         mss_ind = ind_sem.find_mss(self.schema)
         end = time.time()
         runtime_ind = end - start
+        print("done with ind")
 
         # find mss for end semantics
         self.database_reset()
@@ -69,6 +70,7 @@ class Experiments:
         mss_end = end_sem.find_mss()
         end = time.time()
         runtime_end = end - start
+        print("done with end")
 
         # find mss for stage semantics
         self.database_reset()
@@ -76,6 +78,7 @@ class Experiments:
         mss_stage = stage_sem.find_mss()
         end = time.time()
         runtime_stage = end - start
+        print("done with stage")
 
         # find mss for step semantics
         self.database_reset()
@@ -83,6 +86,7 @@ class Experiments:
         mss_step = step_sem.find_mss(self.schema)
         end = time.time()
         runtime_step = end - start
+        print("done with step")
 
         return mss_end, mss_stage, mss_step, mss_ind, runtime_end, runtime_stage, runtime_step, runtime_ind
 
