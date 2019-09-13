@@ -35,11 +35,13 @@ class Experiments:
               "domain" : ('did',
                           'name',
                           'paper_count',
-                          'importance')
+                          'importance'),
+
+              "cite" : ('citing', 'cited')
               }
 
     def __init__(self, rule_file):
-        self.tbl_names = ["organization", "author", "publication", "writes"]
+        self.tbl_names = ["organization", "author", "publication", "writes", "cite"]
         self.db = DatabaseEngine("cr")
         self.programs = self.read_rules(rule_file)
 

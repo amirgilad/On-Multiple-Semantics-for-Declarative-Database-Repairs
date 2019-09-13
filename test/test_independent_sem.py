@@ -31,7 +31,9 @@ class TestIndependentSemantics(unittest.TestCase):
               "domain" : ('did',
                           'name',
                           'paper_count',
-                          'importance')
+                          'importance'),
+
+              "cite" : ('citing', 'cited')
               }
 
     def test_undefined_connection(self):
@@ -212,3 +214,17 @@ class TestIndependentSemantics(unittest.TestCase):
         mss = ind_sem.find_mss(self.schema)
         print(mss)
         self.assertTrue(len(mss) == 3 and all('100920' in t[1] for t in mss))
+
+    def test_mutually_recursive(self):
+        rules = [("publication", "SELECT publication.* FROM publication WHERE publication.pid = 2352376;"),
+                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE delta_publication.pid = cite.cited AND cite.cited = 2352376;"),
+                 ("cite", "SELECT cite.* FROM cite WHERE cite.cited = 2352376;"),
+                 ("publication", "SELECT publication.* FROM publication, delta_cite WHERE publication.pid = delta_cite.cited AND delta_cite.cited = 2352376;")
+                 ]
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
+        db = DatabaseEngine("cr")
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.schema)
+        print(mss)
+        self.assertTrue(len(mss) == 5 and all('2352376' in t[1] for t in mss))

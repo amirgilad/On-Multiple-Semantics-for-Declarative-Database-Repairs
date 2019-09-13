@@ -115,3 +115,39 @@ class TestEndSemantics(unittest.TestCase):
         mss = end_sem.find_mss()
         print(mss)
         self.assertTrue(len(mss) == 5 and len([t for t in mss if t[0] == 'writes']) == 2 and len([t for t in mss if t[0] == 'author']) == 1)
+
+    def test_mutually_recursive(self):
+        rules = [("publication", "SELECT publication.* FROM publication WHERE publication.pid = 805434;"),
+                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE delta_publication.pid = cite.citing;"),
+                 ("cite", "SELECT cite.* FROM cite WHERE cite.citing = 805434;"),
+                 ("publication", "SELECT publication.* FROM publication, delta_cite WHERE publication.pid = delta_cite.citing;")
+                 ]
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        end_sem = EndSemantics(db, rules, tbl_names)
+        mss = end_sem.find_mss()
+        print(mss)
+        self.assertTrue(len(mss) == 1 and all(805434 in t[1] for t in mss))
+
+    def test_mutually_recursive_2(self):
+        rules = [("publication", "SELECT publication.* FROM publication WHERE publication.pid = 2352376;"),
+                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE delta_publication.pid = cite.cited;"),
+                 ("cite", "SELECT cite.* FROM cite WHERE cite.cited = 2352376;"),
+                 ("publication", "SELECT publication.* FROM publication, delta_cite WHERE publication.pid = delta_cite.cited;")
+                 ]
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        end_sem = EndSemantics(db, rules, tbl_names)
+        mss = end_sem.find_mss()
+        print(mss)
+        self.assertTrue(len(mss) == 5 and all(2352376 in t[1] for t in mss))

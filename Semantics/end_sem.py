@@ -24,5 +24,5 @@ class EndSemantics(AbsSemantics):
             prev_len = len(mss)
         # update original tables at the end of the evaluation
         for i in range(len(self.rules)):
-            self.db.delete(self.rules[i][0], self.delta_tuples[self.rules[i][0]])
+            self.db.delete(self.rules[i], self.delta_tuples[self.rules[i][0]])
         return mss

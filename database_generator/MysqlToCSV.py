@@ -35,7 +35,7 @@ def fill_tables(org_names, conn, orig_conn):
             orig_conn.execute(select_query)
             tuple_list = orig_conn.fetchall()
 
-            with open(relation_list[i]+'.csv', 'w', newline='') as writeFile:
+            with open('experiment_dbs\\' + relation_list[i]+'.csv', 'w', newline='') as writeFile:
                 writer = csv.writer(writeFile)
                 writer.writerow(header_list[i])
                 writer.writerows(tuple_list)

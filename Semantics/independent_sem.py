@@ -53,6 +53,7 @@ class IndependentSemantics(AbsSemantics):
         # process provenance into a formula
         self.process_provenance(assignments)
         bf = self.convert_to_bool_formula()
+        print(bf)
 
         # find minimum satisfying assignment
         sol, size = self.solve_boolean_formula_with_z3_smt2(bf)

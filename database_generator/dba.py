@@ -73,10 +73,26 @@ class DatabaseEngine():
         logging.info("Insert into table " + name + " successfully in PostgreSQL ")
         return rows_affected
 
-    def delete(self, name, rows):
-        prefix = name[0] if name[0] != 'w' else 'a'
+    def delete(self, rule, rows):
+        # Hard Coded for DBLP
+        name = rule[0]
+        prefix = ""
+        if name == 'cite':
+            if 'citing' in rule[1]:
+                prefix = 'citing'
+            else:
+                prefix = 'cited'
+        elif name[0] != 'w':
+            prefix = name[0] + "id"
+        else:
+            if 'aid' in rule[1]:
+                prefix = 'aid'
+            else:
+                prefix = 'pid'
+
         prefix2 = "" if name[0] != 'w' else 'p'
-        ps_delete_query = "DELETE FROM " + name + " WHERE " + prefix + "id = %s"
+
+        ps_delete_query = "DELETE FROM " + name + " WHERE " + prefix + " = %s"
         if prefix2:
             ps_delete_query += " AND " + prefix2 + "id = %s"
             rows_to_delete = [(row[0], row[1]) for row in rows]
@@ -129,7 +145,8 @@ class DatabaseEngine():
             "author": "(aid, name, oid)",
             "writes": "(aid, pid)",
             "publication": "(pid, title, year)",
-            "organization": "(oid, name)"
+            "organization": "(oid, name)",
+            "cite": "(citing, cited)"
         }
         cursor = self.connection.cursor()
         for name in lst_names:

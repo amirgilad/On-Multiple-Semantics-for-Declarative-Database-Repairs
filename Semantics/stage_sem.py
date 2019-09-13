@@ -25,6 +25,6 @@ class StageSemantics(AbsSemantics):
             prev_len = len(mss)
             # update original tables at the end of each evaluation step
             for i in range(len(self.rules)):
-                self.db.delete(self.rules[i][0], self.delta_tuples[self.rules[i][0]])
+                self.db.delete(self.rules[i], self.delta_tuples[self.rules[i][0]])
                 self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
         return mss
