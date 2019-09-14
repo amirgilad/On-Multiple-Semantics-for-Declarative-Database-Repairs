@@ -30,10 +30,19 @@ class StepSemantics(AbsSemantics):
         derived_tuples = set()
         prev_len = 0
         while changed:
+            need_delta_update = [True for i in range(len(self.rules))]
             for i in range(len(self.rules)):
                 cur_rows = self.db.execute_query(prov_rules[i][1])
                 cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+
+                # optimization: check if any new assignments before iterating over them
+                if all(assign in assignments for assign in cur_assignments):
+                    need_delta_update[i] = False
+                    continue
+
                 for assignment in cur_assignments:
+                    # this is a weird bug: Python thinks that an assignment is in assignments but it is not
+                    # actually there. This is not the right fix
                     if assignment not in assignments:
                         assignments.append(assignment)
                         derived_tuples.add(assignment[0])
@@ -42,7 +51,8 @@ class StepSemantics(AbsSemantics):
                 changed = False
             prev_len = len(derived_tuples)
             for i in range(len(self.rules)):
-                self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
+                if need_delta_update[i]:
+                    self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
 
         # process provenance into a graph
         self.gen_prov_graph(assignments)

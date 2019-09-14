@@ -36,9 +36,29 @@ insert_queries = [
                   "\copy organization(oid,name)  FROM 'C:\\Users\\user\\git\\causal-rules\\database_generator\\organization.csv' DELIMITER ',' CSV HEADER;"
                   ]
 
-for iq in insert_queries:
-        cursor.execute(iq)
-conn.commit()
+# for iq in insert_queries:
+#         cursor.execute(iq)
+# conn.commit()
+#
+# cursor.close()
+# conn.close()
+import csv
+def write_to_csv(fname, data):
+    """write rows to CSV file"""
+    with open(fname, 'w', newline='') as csvFile:
+        writer = csv.writer(csvFile, delimiter=',')
+        writer.writerows(data)
+    csvFile.close()
 
-cursor.close()
-conn.close()
+def read_csv(fname):
+    rows = []
+    with open(fname, newline='') as csvFile:
+        reader = csv.reader(csvFile, delimiter=',')
+        for row in reader:
+            if row not in rows:
+                rows.append(row)
+    csvFile.close()
+    return rows
+
+rows = read_csv("C:\\Users\\user\\git\\causal-rules\\database_generator\\cite.csv")
+write_to_csv("C:\\Users\\user\\git\\causal-rules\\database_generator\\cite2.csv", rows)

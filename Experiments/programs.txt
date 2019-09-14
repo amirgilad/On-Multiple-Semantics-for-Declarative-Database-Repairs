@@ -16,6 +16,10 @@ author|SELECT author.* FROM author WHERE author.aid = 100920;
 writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
 publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
 
+publication|SELECT publication.* FROM publication WHERE publication.pid = 2352376;
+cite|SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 20000;
+cite|SELECT cite.* FROM cite, delta_publication WHERE cite.cited = delta_publication.pid AND cite.cited < 20000;
+
 author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
 writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
 publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
@@ -24,14 +28,9 @@ publication|SELECT publication.* FROM publication, writes, delta_author WHERE pu
 author|SELECT author.* FROM author WHERE author.aid = 100920;
 writes|SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;
 publication|SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;
-cite|SELECT cite.* FROM cite, delta_publication WHERE delta_publication.pid = cite.citing;
+cite|SELECT cite.* FROM cite, delta_publication WHERE delta_publication.pid = cite.citing AND cite.citing < 20000;
 
 organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
 author|SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;
 writes|SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;
 publication|SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;
-
-publication|SELECT publication.* FROM publication, cite WHERE publication.pid = 1881786;
-cite|SELECT cite.* FROM cite, delta_publication WHERE delta_publication.pid = cite.citing;
-cite|SELECT cite.* FROM cite, publication WHERE cite.citing = 1881786;
-publication|SELECT publication.* FROM publication, delta_cite WHERE publication.pid = delta_cite.citing;

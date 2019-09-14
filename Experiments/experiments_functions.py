@@ -44,6 +44,7 @@ class Experiments:
         self.tbl_names = ["organization", "author", "publication", "writes", "cite"]
         self.db = DatabaseEngine("cr")
         self.programs = self.read_rules(rule_file)
+        self.filename = rule_file
 
     def database_reset(self):
         """reset the database"""
@@ -92,6 +93,128 @@ class Experiments:
 
         return mss_end, mss_stage, mss_step, mss_ind, runtime_end, runtime_stage, runtime_step, runtime_ind
 
+    def runtime_breakdown_step(self, rules):
+        """breakdown of the runtime for step semantics based on the components of the algorithm"""
+        self.database_reset()
+        step_sem = StepSemantics(self.db, rules, self.tbl_names)
+
+        if not step_sem.rules:   # verify more than 0 rules
+            return set()
+
+        # convert the rules so they will store the provenance
+        start = time.time()
+        prov_rules, prov_tbls, proj = step_sem.gen_prov_rules()
+
+        # var to store the assignments
+        assignments = []
+
+        # use end semantics to derive all delta tuples and store the provenance
+        changed = True
+        derived_tuples = set()
+        prev_len = 0
+        while changed:
+            need_delta_update = [True for i in range(len(self.rules))]
+            for i in range(len(step_sem.rules)):
+                cur_rows = step_sem.db.execute_query(prov_rules[i][1])
+                cur_assignments = step_sem.rows_to_prov(cur_rows, prov_tbls[i], self.schema, proj, prov_rules[i])
+
+                # optimization: check if any new assignments before iterating over them
+                if all(assign in assignments for assign in cur_assignments):
+                    need_delta_update[i] = False
+                    continue
+
+                for assignment in cur_assignments:
+                    if assignment not in assignments:
+                        assignments.append(assignment)
+                        derived_tuples.add(assignment[0])
+                        step_sem.delta_tuples[step_sem.rules[i][0]].add(assignment[0][1])
+            if prev_len == len(derived_tuples):
+                changed = False
+            prev_len = len(derived_tuples)
+            for i in range(len(step_sem.rules)):
+                if need_delta_update[i]:
+                    step_sem.db.delta_update(step_sem.rules[i][0], step_sem.delta_tuples[step_sem.rules[i][0]])   # update delta table in db
+        end = time.time()
+        runtime_eval = end - start
+
+        # process provenance into a graph
+        start = time.time()
+        step_sem.gen_prov_graph(assignments)
+        step_sem.compute_benefits_and_removed_flags()
+        end = time.time()
+        runtime_process_prov = end - start
+
+        # the "heart" of the algorithm. Traverse the prov. graph by layer
+        # and greedily find for each layer the nodes whose derivation will
+        # be most beneficial to stabilizing the database
+        start = time.time()
+        mss = step_sem.traverse_by_layer()
+        end = time.time()
+        runtime_graph_traversal = end - start
+
+        return runtime_eval, runtime_process_prov, runtime_graph_traversal
+
+    def runtime_breakdown_independent(self, rules):
+        """breakdown of the runtime for independent semantics based on the components of the algorithm"""
+        ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
+
+        if not ind_sem.rules:   # verify more than 0 rules
+            return set()
+
+        # delete database and reload with all possible and impossible delta tuples
+        ind_sem.db.delete_tables(ind_sem.delta_tuples.keys())
+        ind_sem.db.load_database_tables(ind_sem.delta_tuples.keys(), is_delta=True)
+
+        # convert the rules so they will store the provenance
+        start = time.time()
+        prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
+
+        # var to store the assignments
+        assignments = []
+
+        # use end semantics to derive all delta tuples and store the provenance
+        changed = True
+        derived_tuples = set()
+        prev_len = 0
+        while changed:
+            for i in range(len(ind_sem.rules)):
+                cur_rows = ind_sem.db.execute_query(prov_rules[i][1])
+                cur_assignments = ind_sem.rows_to_prov(cur_rows, prov_tbls[i], self.schema, proj, prov_rules[i])
+
+                # optimization: check if any new assignments before iterating over them
+                if all(assign in assignments for assign in cur_assignments):
+                    continue
+
+                for assignment in cur_assignments:
+                    if assignment not in assignments:
+                        assignments.append(assignment)
+                        derived_tuples.add(assignment[0])
+            if prev_len == len(derived_tuples):
+                changed = False
+            prev_len = len(derived_tuples)
+        end = time.time()
+        runtime_eval = end - start
+
+        # process provenance into a formula
+        start = time.time()
+        ind_sem.process_provenance(assignments)
+        bf = ind_sem.convert_to_bool_formula()
+        end = time.time()
+        runtime_process_prov = end - start
+
+        # bf_size = len(ind_sem.prov_notations.values())
+
+        # find minimum satisfying assignment
+        start = time.time()
+        sol, size = ind_sem.solve_boolean_formula_with_z3_smt2(bf)
+
+        # process solution to mss
+        mss = ind_sem.convert_sat_sol_to_mss(sol)
+        end = time.time()
+        runtime_solve = end - start
+
+        return runtime_eval, runtime_process_prov, runtime_solve
+
     def run_experiments(self):
         """"runs size, containment, and runtime comparison between the semantics for all programs"""
         size_results = [["Program Number", "End Size", "Stage Size", "Step Size", "Independent Size"]]
@@ -116,9 +239,27 @@ class Experiments:
 
             print("Program ", idx, "/", len(self.programs), "completed")
 
-        self.write_to_csv("size_experiments.csv", size_results)
-        self.write_to_csv("containment_experiments.csv", containment_results)
-        self.write_to_csv("runtime_experiments.csv", runtime_results)
+        self.write_to_csv("size_experiments_" + self.filename[:-4] + ".csv", size_results)
+        self.write_to_csv("containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
+        self.write_to_csv("runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
+
+    def run_experiments_breakdown(self, sem):
+        """runs the runtime breakdown experiments for step and independent semantics"""
+        last = "Traverse" if sem == "step" else "Solve"
+        breakdown_results = [["Program Number", "Eval", "Process", last]]
+        for i in range(len(self.programs)):
+            idx = i+1
+            rules = self.programs[i]
+            if sem == "step":
+                runtime_eval, runtime_process_prov, runtime_last = self.runtime_breakdown_step(rules)
+            else:
+                runtime_eval, runtime_process_prov, runtime_last = self.runtime_breakdown_independent(rules)
+            total = runtime_eval + runtime_process_prov + runtime_last
+            breakdown_results.append([idx, runtime_eval / total, runtime_process_prov / total, runtime_last / total])
+
+            print("Program ", idx, "/", len(self.programs), "completed")
+        self.write_to_csv("runtime_breakdown_" + sem + "_" + self.filename[:-4] + ".csv", breakdown_results)
+
 
     def write_to_csv(self, fname, data):
         """write rows to CSV file"""
@@ -143,5 +284,20 @@ class Experiments:
         return all_programs
 
 
+# first set with general assortment of programs
 ex = Experiments("programs.txt")
 ex.run_experiments()
+ex.run_experiments_breakdown("step")
+ex.run_experiments_breakdown("independent")
+
+# second set with increasing number of joins in a rule
+ex = Experiments("join_programs.txt")
+ex.run_experiments()
+ex.run_experiments_breakdown("step")
+ex.run_experiments_breakdown("independent")
+
+# third set with increasing number of rules relying on each other
+ex = Experiments("num_rules_programs.txt")
+ex.run_experiments()
+ex.run_experiments_breakdown("step")
+ex.run_experiments_breakdown("independent")

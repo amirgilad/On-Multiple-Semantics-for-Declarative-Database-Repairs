@@ -260,6 +260,40 @@ class TestStepSemantics(unittest.TestCase):
         print("size of MSS should be the entire DB. Actual size:", len(mss))
         self.assertTrue(len(mss) > 27000)
 
+    def test_large_mss_2(self):
+        rules = [("organization", "SELECT organization.* FROM organization WHERE organization.oid = 16045;"),
+                 ("author", "SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;"),
+                 ("writes", "SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;"),
+                 ("publication", "SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;"),
+                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 10000;")]
+
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        results1 = db.execute_query("SELECT organization.* FROM organization WHERE organization.oid = 16045;")
+        print("num org:", len(results1))
+        results2 = db.execute_query("SELECT author.* FROM author WHERE author.oid = 16045;")
+        print("num author:", len(results2))
+        results3 = db.execute_query("SELECT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045;")
+        print("num writes:", len(results3))
+        results4 = db.execute_query("SELECT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045;")
+        print("num pub:", len(results4))
+        results5 = db.execute_query("SELECT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000;")
+        print("num cite:", len(results5))
+
+        res_size = len(results1)+len(results2)+len(results3)+len(results4)+len(results5)
+        print("results size:", res_size)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss = step_sem.find_mss(self.schema)
+
+        print("size of MSS should be the entire DB. Actual size:", len(mss), "results size:", res_size)
+        self.assertTrue(len(mss) == res_size)
+
     def test_mutually_recursive_2(self):
         # DOES NOT WORK AS PROVENANCE GRAPH HAS A CYCLE!!!
         rules = [("publication", "SELECT publication.* FROM publication WHERE publication.pid = 2352376;"),

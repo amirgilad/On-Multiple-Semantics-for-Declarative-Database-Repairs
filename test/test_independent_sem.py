@@ -200,6 +200,42 @@ class TestIndependentSemantics(unittest.TestCase):
         # MSS should only include the author tuple with aid = 100920
         self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
 
+    def test_mss_hard_case_2(self):
+        """test case with two rules with the same body"""
+        rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"),
+                 ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;"),
+                 ("publication", "SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.schema)
+        print(mss)
+        # MSS should only include the author tuple with aid = 100920
+        # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
+
+    def test_mss_hard_case_3(self):
+        """test case with two rules with the same body"""
+        rules = [("publication", "SELECT publication.* FROM publication WHERE publication.pid = 2352376;"),
+                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 2700;"),
+                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.cited = delta_publication.pid AND cite.cited < 2700;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.schema)
+        print(mss)
+        # MSS should only include the author tuple with aid = 100920
+        # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
+
     def test_mss_recursive_case(self):
         """test case with one simple rule"""
         rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]

@@ -42,6 +42,11 @@ class IndependentSemantics(AbsSemantics):
             for i in range(len(self.rules)):
                 cur_rows = self.db.execute_query(prov_rules[i][1])
                 cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+
+                # optimization: check if any new assignments before iterating over them
+                if all(assign in assignments for assign in cur_assignments):
+                    continue
+
                 for assignment in cur_assignments:
                     if assignment not in assignments:
                         assignments.append(assignment)
@@ -53,7 +58,6 @@ class IndependentSemantics(AbsSemantics):
         # process provenance into a formula
         self.process_provenance(assignments)
         bf = self.convert_to_bool_formula()
-        print(bf)
 
         # find minimum satisfying assignment
         sol, size = self.solve_boolean_formula_with_z3_smt2(bf)
@@ -83,7 +87,10 @@ class IndependentSemantics(AbsSemantics):
                 else:
                     prov_proj += tbl + ".*, "
             prov_proj = prov_proj[:-2]
-            q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + "WHERE" + rest[1]
+            if len(rest) > 1:
+                q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + "WHERE" + rest[1]
+            else:
+                q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + ";"
             prov_rules.append((query[0], q_prov))
         return prov_rules, prov_tbls, proj
 
