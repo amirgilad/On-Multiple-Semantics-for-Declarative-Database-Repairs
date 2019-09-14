@@ -105,42 +105,8 @@ class Experiments:
         start = time.time()
         prov_rules, prov_tbls, proj = step_sem.gen_prov_rules()
 
-        # var to store the assignments
-        assignments = []
-        rows = set()
-
-        # use end semantics to derive all delta tuples and store the provenance
-        changed = True
-        derived_tuples = set()
-        prev_len = 0
-        while changed:
-            need_delta_update = [True for i in range(len(step_sem.rules))]
-            for i in range(len(step_sem.rules)):
-                cur_rows = step_sem.db.execute_query(prov_rules[i][1])
-                # optimization: check if any new assignments before iterating over them
-                if all(r in rows for r in cur_rows):
-                    need_delta_update[i] = False
-                    continue
-                else:
-                    rows.update(cur_rows)
-
-                cur_assignments = step_sem.rows_to_prov(cur_rows, prov_tbls[i], self.schema, proj, prov_rules[i])
-
-                for assignment in cur_assignments:
-                    # this is a weird bug: Python thinks that an assignment is in assignments but it is not
-                    # actually there. This is not the right fix
-                    if assignment not in assignments:
-                        assignments.append(assignment)
-                        derived_tuples.add(assignment[0])
-                        step_sem.delta_tuples[step_sem.rules[i][0]].add(assignment[0][1])
-            if prev_len == len(derived_tuples):
-                changed = False
-            prev_len = len(derived_tuples)
-            for i in range(len(step_sem.rules)):
-                if need_delta_update[i]:
-                    step_sem.db.delta_update(step_sem.rules[i][0], step_sem.delta_tuples[step_sem.rules[i][0]])   # update delta table in db
-
-        del rows   # remove from memory
+        # evaluate the program and update delta tables
+        assignments = step_sem.eval(self.schema, prov_rules, prov_tbls, proj)
 
         end = time.time()
         runtime_eval = end - start
@@ -177,37 +143,9 @@ class Experiments:
         start = time.time()
         prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
 
-        assignments = []
-        rows = set()
+        # evaluate the program
+        assignments = ind_sem.eval(self.schema, prov_rules, prov_tbls, proj)
 
-        # use end semantics to derive all delta tuples and store the provenance
-        changed = True
-        derived_tuples = set()
-        prev_len = 0
-        while changed:
-            for i in range(len(ind_sem.rules)):
-                cur_rows = ind_sem.db.execute_query(prov_rules[i][1])
-                # optimization: check if any new assignments before iterating over them
-                if all(r in rows for r in cur_rows):
-                    continue
-                else:
-                    rows.update(cur_rows)
-
-                cur_assignments = ind_sem.rows_to_prov(cur_rows, prov_tbls[i], self.schema, proj, prov_rules[i])
-
-                # optimization: check if any new assignments before iterating over them
-                if all(assign in assignments for assign in cur_assignments):
-                    continue
-
-                for assignment in cur_assignments:
-                    if assignment not in assignments:
-                        assignments.append(assignment)
-                        derived_tuples.add(assignment[0])
-            if prev_len == len(derived_tuples):
-                changed = False
-            prev_len = len(derived_tuples)
-
-        del rows   # remove from memory
         end = time.time()
         runtime_eval = end - start
 
