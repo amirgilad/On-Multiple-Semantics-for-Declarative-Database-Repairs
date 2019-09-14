@@ -192,6 +192,23 @@ class TestStepSemantics(unittest.TestCase):
         # MSS should only include the author tuple with aid = 100920
         self.assertTrue(len(mss) == 1 and 100920 in next(iter(mss))[1])
 
+    def test_mss_hard_case(self):
+        """test case with two rules with the same body"""
+        rules = [("author", "SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;"),
+                 ("organization", "SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss = step_sem.find_mss(self.schema)
+        print(mss)
+        # MSS should only include the organization tuple with aid = 100920
+        self.assertTrue(len(mss) == 1 and 16045 in next(iter(mss))[1])
+
     def test_mss_recursive_case(self):
         """test case with one rule relying on the other"""
         rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]

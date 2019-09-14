@@ -22,37 +22,8 @@ class StepSemantics(AbsSemantics):
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
 
-        # var to store the assignments
-        assignments = []
-
-        # use end semantics to derive all delta tuples and store the provenance
-        changed = True
-        derived_tuples = set()
-        prev_len = 0
-        while changed:
-            need_delta_update = [True for i in range(len(self.rules))]
-            for i in range(len(self.rules)):
-                cur_rows = self.db.execute_query(prov_rules[i][1])
-                cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
-
-                # optimization: check if any new assignments before iterating over them
-                if all(assign in assignments for assign in cur_assignments):
-                    need_delta_update[i] = False
-                    continue
-
-                for assignment in cur_assignments:
-                    # this is a weird bug: Python thinks that an assignment is in assignments but it is not
-                    # actually there. This is not the right fix
-                    if assignment not in assignments:
-                        assignments.append(assignment)
-                        derived_tuples.add(assignment[0])
-                        self.delta_tuples[self.rules[i][0]].add(assignment[0][1])
-            if prev_len == len(derived_tuples):
-                changed = False
-            prev_len = len(derived_tuples)
-            for i in range(len(self.rules)):
-                if need_delta_update[i]:
-                    self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
+        # evaluate the program and update delta tables
+        assignments = self.eval(schema, prov_rules, prov_tbls, proj)
 
         # process provenance into a graph
         self.gen_prov_graph(assignments)
@@ -88,6 +59,39 @@ class StepSemantics(AbsSemantics):
             q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + "WHERE" + rest[1]
             prov_rules.append((query[0], q_prov))
         return prov_rules, prov_tbls, proj
+
+    def eval(self, schema, prov_rules, prov_tbls, proj):
+        """Use end semantics to derive all delta tuples and store the provenance"""
+        assignments = []   # var to store the assignments
+        changed = True
+        derived_tuples = set()
+        prev_len = 0
+        while changed:
+            need_delta_update = [True for i in range(len(self.rules))]
+            for i in range(len(self.rules)):
+                cur_rows = self.db.execute_query(prov_rules[i][1])
+                cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+
+                # optimization: check if any new assignments before iterating over them
+                if all(a in assignments for a in cur_assignments):
+                    need_delta_update[i] = False
+                    continue
+
+                for assignment in cur_assignments:
+                    # this is a weird bug: Python thinks that an assignment is in assignments but it is not
+                    # actually there. This is not the right fix
+                    if assignment not in assignments:
+                        assignments.append(assignment)
+                        derived_tuples.add(assignment[0])
+                        self.delta_tuples[self.rules[i][0]].add(assignment[0][1])
+            if prev_len == len(derived_tuples):
+                changed = False
+            prev_len = len(derived_tuples)
+            for i in range(len(self.rules)):
+                if need_delta_update[i]:
+                    self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
+        return assignments
+
 
     def handle_assignment(self, row, assignment_tuples, schema, prov_tbls, rule):
         """convert a row from the result set into an assignment of tuples"""
@@ -167,6 +171,8 @@ class StepSemantics(AbsSemantics):
         and creates a new graph without all the nodes connected to arg_max except \Delta(arg_max)"""
         if arg_max is None:
             return self.prov_graph
+
+        self.prov_graph.node[arg_max]["removed"] = True
         for n in self.prov_graph.successors(arg_max):
             # check that the vertex is not a successor of \Delta(arg_max) or \Delta(arg_max) itself
             is_legal_successor = (n != ("delta_" + arg_max[0], arg_max[1])) \

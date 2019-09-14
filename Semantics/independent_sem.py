@@ -31,10 +31,24 @@ class IndependentSemantics(AbsSemantics):
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
 
-        # var to store the assignments
-        assignments = []
+        # evaluate the program
+        assignments = self.eval(schema, prov_rules, prov_tbls, proj)
 
-        # use end semantics to derive all delta tuples and store the provenance
+        # process provenance into a formula
+        self.process_provenance(assignments)
+        bf = self.convert_to_bool_formula()
+
+        # find minimum satisfying assignment
+        sol, size = self.solve_boolean_formula_with_z3_smt2(bf)
+
+        # process solution to mss
+        mss = self.convert_sat_sol_to_mss(sol)
+        return mss
+
+    def eval(self, schema, prov_rules, prov_tbls, proj):
+        """Use end semantics to derive all possible and impossible delta tuples and store the provenance"""
+        assignments = []   # var to store the assignments
+
         changed = True
         derived_tuples = set()
         prev_len = 0
@@ -54,17 +68,7 @@ class IndependentSemantics(AbsSemantics):
             if prev_len == len(derived_tuples):
                 changed = False
             prev_len = len(derived_tuples)
-
-        # process provenance into a formula
-        self.process_provenance(assignments)
-        bf = self.convert_to_bool_formula()
-
-        # find minimum satisfying assignment
-        sol, size = self.solve_boolean_formula_with_z3_smt2(bf)
-
-        # process solution to mss
-        mss = self.convert_sat_sol_to_mss(sol)
-        return mss
+        return assignments
 
     def gen_prov_rules(self):
         """convert every rule to a rule that outputs the provenance"""
