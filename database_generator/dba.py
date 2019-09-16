@@ -151,10 +151,12 @@ class DatabaseEngine():
         cursor = self.connection.cursor()
         for name in lst_names:
             with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
-                cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
+                # cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
+                cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV;", f)
             if is_delta:
                 with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
-                    cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
+                    # cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
+                    cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV;", f)
 
 
 

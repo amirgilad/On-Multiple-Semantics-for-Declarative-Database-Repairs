@@ -17,8 +17,8 @@ writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author
 publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
 
 publication|SELECT publication.* FROM publication WHERE publication.pid = 2352376;
-cite|SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 20000;
-cite|SELECT cite.* FROM cite, delta_publication WHERE cite.cited = delta_publication.pid AND cite.cited < 20000;
+cite|SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid;
+cite|SELECT cite.* FROM cite, delta_publication WHERE cite.cited = delta_publication.pid;
 
 author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
 writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;

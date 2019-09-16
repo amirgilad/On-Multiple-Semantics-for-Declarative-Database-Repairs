@@ -1,4 +1,7 @@
 from Semantics.step_sem import StepSemantics
+from Semantics.independent_sem import IndependentSemantics
+from Semantics.stage_sem import StageSemantics
+from Semantics.end_sem import EndSemantics
 from database_generator.dba import DatabaseEngine
 import unittest
 
@@ -179,7 +182,8 @@ class TestStepSemantics(unittest.TestCase):
 
     def test_mss_hard_case(self):
         """test case with two rules with the same body"""
-        rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"), ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")]
+        rules = [("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"),
+                 ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
 
@@ -192,7 +196,7 @@ class TestStepSemantics(unittest.TestCase):
         # MSS should only include the author tuple with aid = 100920
         self.assertTrue(len(mss) == 1 and 100920 in next(iter(mss))[1])
 
-    def test_mss_hard_case(self):
+    def test_mss_hard_case_2(self):
         """test case with two rules with the same body"""
         rules = [("author", "SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;"),
                  ("organization", "SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;")]
@@ -208,6 +212,47 @@ class TestStepSemantics(unittest.TestCase):
         print(mss)
         # MSS should only include the organization tuple with aid = 100920
         self.assertTrue(len(mss) == 1 and 16045 in next(iter(mss))[1])
+
+    def test_mss_hard_case_3(self):
+        rules = [
+            ("author", "SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"),
+            ("writes", "SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;"),
+            ("publication", "SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;"),
+            ("publication", "SELECT publication.* FROM publication, writes, delta_author WHERE publication.pid = writes.pid AND writes.aid = delta_author.aid;")
+            ]
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss_ind = ind_sem.find_mss(self.schema)
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss_step = step_sem.find_mss(self.schema)
+        mss_step_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_step])
+
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        stage_sem = StageSemantics(db, rules, tbl_names)
+        mss_stage = stage_sem.find_mss()
+        mss_stage_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_stage])
+
+        print(mss_ind)
+        print(mss_step)
+        print(mss_stage)
+
+        # mss according to end should be equal to mss according to ind
+        self.assertTrue(len(mss_stage_strs) == len(mss_ind))
 
     def test_mss_recursive_case(self):
         """test case with one rule relying on the other"""
@@ -290,26 +335,32 @@ class TestStepSemantics(unittest.TestCase):
         # reset the database
         db.delete_tables(tbl_names)
         db.load_database_tables(tbl_names)
-
-        results1 = db.execute_query("SELECT organization.* FROM organization WHERE organization.oid = 16045;")
-        print("num org:", len(results1))
-        results2 = db.execute_query("SELECT author.* FROM author WHERE author.oid = 16045;")
-        print("num author:", len(results2))
-        results3 = db.execute_query("SELECT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045;")
-        print("num writes:", len(results3))
-        results4 = db.execute_query("SELECT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045;")
-        print("num pub:", len(results4))
-        results5 = db.execute_query("SELECT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000;")
-        print("num cite:", len(results5))
-
-        res_size = len(results1)+len(results2)+len(results3)+len(results4)+len(results5)
+        results = db.execute_query("SELECT DISTINCT organization.* FROM organization WHERE organization.oid = 16045;")
+        results += db.execute_query("SELECT DISTINCT author.* FROM author WHERE author.oid = 16045;")
+        results += db.execute_query("SELECT DISTINCT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045;")
+        results += db.execute_query("SELECT DISTINCT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045;")
+        results += db.execute_query("SELECT DISTINCT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000;")
+        res_size = len(results)
         print("results size:", res_size)
 
-        step_sem = StepSemantics(db, rules, tbl_names)
-        mss = step_sem.find_mss(self.schema)
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+        end_sem = EndSemantics(db, rules, tbl_names)
+        end_mss = end_sem.find_mss()
 
-        print("size of MSS should be the entire DB. Actual size:", len(mss), "results size:", res_size)
-        self.assertTrue(len(mss) == res_size)
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+        step_sem = StepSemantics(db, rules, tbl_names)
+        step_mss = step_sem.find_mss(self.schema)
+
+        print("size of end mss", len(end_mss))
+        print("num of separating tuples:", len(end_mss - step_mss))
+        print(end_mss - step_mss)
+
+        print("size of MSS should be the entire DB. Actual size:", len(step_mss), "results size:", res_size)
+        self.assertTrue(len(step_mss) == res_size)
 
     def test_mutually_recursive_2(self):
         # DOES NOT WORK AS PROVENANCE GRAPH HAS A CYCLE!!!

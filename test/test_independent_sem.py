@@ -1,4 +1,5 @@
 from Semantics.independent_sem import IndependentSemantics
+from Semantics.end_sem import EndSemantics
 from database_generator.dba import DatabaseEngine
 import unittest
 
@@ -150,7 +151,7 @@ class TestIndependentSemantics(unittest.TestCase):
         print(sol)
 
     def test_mss_easy_case(self):
-        """test case with one simple rule"""
+        """test case with two simple rules"""
         rules = [("author", "SELECT author.* FROM author WHERE author.name like '%m%';"), ("writes", "SELECT writes.* FROM writes WHERE writes.aid = 58525;")]
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
@@ -235,6 +236,44 @@ class TestIndependentSemantics(unittest.TestCase):
         print(mss)
         # MSS should only include the author tuple with aid = 100920
         # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
+
+    def test_mss_hard_case_4(self):
+        """test case with two dependent rules
+        SHOWS THAT CONVERTING TO STRING FORMAT DOES NOT WORK FOR AUTHORS, SO EVEN THOUGH EXPERIMENTS SHOW THAT MSS_IND IS
+        NOT CONTAINED IN MSS_END, IT IS IF IT IS OF THE SAME SIZE"""
+        rules = [("organization", "SELECT organization.* FROM organization WHERE organization.oid = 16045;"),
+                 ("author", "SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;")]
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss_ind = ind_sem.find_mss(self.schema)
+        end_sem = EndSemantics(db, rules, tbl_names)
+        mss_end = end_sem.find_mss()
+        mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end])
+        # mss according to end should be equal to mss according to ind
+        self.assertTrue(len(mss_end_strs) ==  len(mss_ind))
+
+    def test_mss_hard_case_5(self):
+        """test case with two rules with the same body"""
+        rules = [("author", "SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;"),
+                 ("organization", "SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.schema)
+        print(mss)
+        # MSS should only include the organization tuple with aid = 100920
+        self.assertTrue(len(mss) == 1 and '16045' in next(iter(mss))[1])
 
     def test_mss_recursive_case(self):
         """test case with one simple rule"""

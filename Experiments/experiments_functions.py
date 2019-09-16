@@ -173,7 +173,7 @@ class Experiments:
         """"runs size, containment, and runtime comparison between the semantics for all programs"""
         size_results = [["Program Number", "End Size", "Stage Size", "Step Size", "Independent Size"]]
         runtime_results = [["Program Number", "End Runtime", "Stage Runtime", "Step Runtime", "Independent Runtime"]]
-        containment_results = [["Program Number", "Stage in End", "Step in End", "Step in Stage", "Independent in End",
+        containment_results = [["Program Number", "Stage in End", "Step in End", "Step in Stage", "Stage in Step", "Independent in End",
                                 "Independent in Stage", "Independent in Step"]]
 
         for i in range(len(self.programs)):
@@ -185,12 +185,12 @@ class Experiments:
             runtime_results.append([idx, runtime_end, runtime_stage, runtime_step, runtime_ind])
 
             # change tuples to strings to comply with independent semantics format
-            mss_end_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_end])
-            mss_stage_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_stage])
-            mss_step_strs = set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_step])
+            mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end]) #set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_end])
+            mss_stage_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_stage]) #set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_stage])
+            mss_step_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end]) #set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_step])
             containment_results.append([idx, mss_stage <= mss_end, mss_step <= mss_end, mss_step <= mss_stage,
-                                        mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs, mss_ind <= mss_step_strs])
-
+                                        mss_stage <= mss_step, mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs,
+                                        mss_ind <= mss_step_strs])
             print("Program ", idx, "/", len(self.programs), "completed")
 
         self.write_to_csv("size_experiments_" + self.filename[:-4] + ".csv", size_results)

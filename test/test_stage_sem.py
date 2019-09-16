@@ -76,6 +76,23 @@ class TestStageSemantics(unittest.TestCase):
         mss_no_rel = [e[1] for e in mss]
         self.assertTrue(all(t in mss_no_rel for t in results))
 
+    def test_mss_hard_case_3(self):
+        """test case with two rules with the same body"""
+        rules = [("author", "SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;"),
+                 ("organization", "SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;")]
+        tbl_names = ["organization", "author", "publication", "writes"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        stage_sem = StageSemantics(db, rules, tbl_names)
+        mss = stage_sem.find_mss()
+        print(mss)
+        # MSS should only include the organization tuple with aid = 100920
+        self.assertTrue(len(mss) > 1 and 16045 in next(iter(mss))[1])
+
     def test_recursive_case(self):
         """test case with two dependent rules"""
         rules = [("author", "SELECT * FROM author WHERE author.name like '%m%';"), ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;")]
