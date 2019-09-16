@@ -192,5 +192,5 @@ class StepSemantics(AbsSemantics):
                 preds = self.prov_graph.predecessors(n)
                 idx = max([layers.index(l) for p in preds for l in layers if p in l])
                 layers[idx+1].append(n)
-                top_layer = idx + 1
+                top_layer = idx + 2
         return layers[:top_layer + 1]

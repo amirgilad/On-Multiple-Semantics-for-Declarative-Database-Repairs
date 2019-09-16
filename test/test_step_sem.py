@@ -323,11 +323,11 @@ class TestStepSemantics(unittest.TestCase):
         self.assertTrue(len(mss) > 27000)
 
     def test_large_mss_2(self):
-        rules = [("organization", "SELECT organization.* FROM organization WHERE organization.oid = 16045;"),
-                 ("author", "SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;"),
-                 ("writes", "SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;"),
-                 ("publication", "SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;"),
-                 ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 10000;")]
+        rules = [("organization", "SELECT DISTINCT organization.* FROM organization WHERE organization.oid = 16045;"),
+                 ("author", "SELECT DISTINCT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid AND author.aid < 400000;"),
+                 ("writes", "SELECT DISTINCT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;"),
+                 ("publication", "SELECT DISTINCT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;"),
+                 ("cite", "SELECT DISTINCT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 10000;")]
 
         tbl_names = ["organization", "author", "publication", "writes", "cite"]
         db = DatabaseEngine("cr")
@@ -335,32 +335,21 @@ class TestStepSemantics(unittest.TestCase):
         # reset the database
         db.delete_tables(tbl_names)
         db.load_database_tables(tbl_names)
+
         results = db.execute_query("SELECT DISTINCT organization.* FROM organization WHERE organization.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT author.* FROM author WHERE author.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000;")
+        results += db.execute_query("SELECT DISTINCT author.* FROM author WHERE author.oid = 16045  AND author.aid < 400000;")
+        results += db.execute_query("SELECT DISTINCT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045 AND author.aid < 400000;")
+        results += db.execute_query("SELECT DISTINCT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045 AND author.aid < 400000;")
+        results += db.execute_query("SELECT DISTINCT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000 AND author.aid < 400000;")
+
         res_size = len(results)
         print("results size:", res_size)
 
-        # reset the database
-        db.delete_tables(tbl_names)
-        db.load_database_tables(tbl_names)
-        end_sem = EndSemantics(db, rules, tbl_names)
-        end_mss = end_sem.find_mss()
-
-        # reset the database
-        db.delete_tables(tbl_names)
-        db.load_database_tables(tbl_names)
         step_sem = StepSemantics(db, rules, tbl_names)
-        step_mss = step_sem.find_mss(self.schema)
+        mss = step_sem.find_mss(self.schema)
 
-        print("size of end mss", len(end_mss))
-        print("num of separating tuples:", len(end_mss - step_mss))
-        print(end_mss - step_mss)
-
-        print("size of MSS should be the entire DB. Actual size:", len(step_mss), "results size:", res_size)
-        self.assertTrue(len(step_mss) == res_size)
+        print("size of MSS should be the entire DB. Actual size:", len(mss), "results size:", res_size)
+        self.assertTrue(len(mss) == res_size)
 
     def test_mutually_recursive_2(self):
         # DOES NOT WORK AS PROVENANCE GRAPH HAS A CYCLE!!!
