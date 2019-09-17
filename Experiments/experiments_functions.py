@@ -239,16 +239,16 @@ class Experiments:
 
 
 # third set with increasing number of rules relying on each other
-ex = Experiments("num_rules_programs.txt")
-ex.run_experiments()
+# ex = Experiments("num_rules_programs.txt")
+# ex.run_experiments()
 # ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 
 # first set with general assortment of programs
-ex = Experiments("programs.txt")
-ex.run_experiments()
-ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
+# ex = Experiments("programs.txt")
+# ex.run_experiments()
+# ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("independent")
 
 # second set with increasing number of joins in a rule
 ex = Experiments("join_programs.txt")
