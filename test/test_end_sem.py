@@ -155,7 +155,7 @@ class TestEndSemantics(unittest.TestCase):
 
     def test_large_mss_2(self):
         rules = [("organization", "SELECT organization.* FROM organization WHERE organization.oid = 16045;"),
-                 ("author", "SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;"),
+                 ("author", "SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid AND author.aid < 400000;"),
                  ("writes", "SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;"),
                  ("publication", "SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;"),
                  ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 10000;")]
@@ -168,10 +168,10 @@ class TestEndSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         results = db.execute_query("SELECT DISTINCT organization.* FROM organization WHERE organization.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT author.* FROM author WHERE author.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045;")
-        results += db.execute_query("SELECT DISTINCT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000;")
+        results += db.execute_query("SELECT DISTINCT author.* FROM author WHERE author.oid = 16045 AND author.aid < 400000;")
+        results += db.execute_query("SELECT DISTINCT writes.* FROM writes, author WHERE author.aid = writes.aid AND author.oid = 16045 AND author.aid < 400000;")
+        results += db.execute_query("SELECT DISTINCT publication.* FROM publication, writes, author WHERE publication.pid = writes.pid AND author.aid = writes.aid AND  author.oid = 16045 AND author.aid < 400000;")
+        results += db.execute_query("SELECT DISTINCT cite.* FROM cite, publication, writes, author WHERE cite.citing = publication.pid AND publication.pid = writes.pid AND author.aid = writes.aid AND author.oid = 16045 AND cite.citing < 10000 AND author.aid < 400000;")
 
         res_size = len(results)
         print("results size:", res_size)

@@ -1,0 +1,9 @@
+cite|SELECT cite.* FROM cite WHERE cite.citing > 10000 AND cite.citing < 20000;
+
+cite|SELECT cite.* FROM cite, publication WHERE cite.citing > 10000 AND cite.citing < 20000 AND publication.pid = cite.citing;
+
+cite|SELECT cite.* FROM cite, publication, writes WHERE cite.citing > 10000 AND cite.citing < 20000 AND publication.pid = cite.citing AND publication.pid = writes.pid;
+
+cite|SELECT cite.* FROM cite, publication, writes, author WHERE cite.citing > 10000 AND cite.citing < 20000 AND publication.pid = cite.citing AND publication.pid = writes.pid AND writes.aid = author.aid;
+
+cite|SELECT cite.* FROM cite, publication, writes, author, organization WHERE cite.citing > 10000 AND cite.citing < 20000 AND publication.pid = cite.citing AND publication.pid = writes.pid AND writes.aid = author.aid AND author.oid = organization.oid;

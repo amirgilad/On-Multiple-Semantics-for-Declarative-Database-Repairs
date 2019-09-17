@@ -1,0 +1,19 @@
+organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
+
+organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
+author|SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;
+
+organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
+author|SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;
+writes|SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;
+
+organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
+author|SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;
+writes|SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;
+publication|SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;
+
+organization|SELECT organization.* FROM organization WHERE organization.oid = 16045;
+author|SELECT author.* FROM author, delta_organization WHERE author.oid = delta_organization.oid;
+writes|SELECT writes.* FROM writes, delta_author WHERE delta_author.aid = writes.aid;
+publication|SELECT publication.* FROM publication, delta_writes WHERE publication.pid = delta_writes.pid;
+cite|SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid;
