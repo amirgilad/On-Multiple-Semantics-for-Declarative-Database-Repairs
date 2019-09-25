@@ -1,0 +1,131 @@
+# Encode the program:
+# author|SELECT author.* FROM author WHERE author.aid = 100920;
+# writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
+# Result: treated like end semantics! deleted all writes tuples and all author tuples with this aid.
+
+
+CREATE OR REPLACE FUNCTION update_author_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM author WHERE author.aid = 100920;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_author_5
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_author_view_5();
+
+CREATE OR REPLACE FUNCTION update_delta_author_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_author values (old.aid, old.name, old.oid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_author_5
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_delta_author_view_5();
+
+	
+	
+CREATE OR REPLACE FUNCTION update_writes_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'INSERT') THEN
+            DELETE FROM writes USING delta_author WHERE writes.aid = delta_author.aid;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_writes_5
+    AFTER INSERT ON delta_author
+    FOR EACH ROW EXECUTE PROCEDURE update_writes_view_5();
+
+
+CREATE OR REPLACE FUNCTION update_delta_writes_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_writes values (old.aid, old.pid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_writes_5
+    AFTER DELETE ON writes
+    FOR EACH ROW EXECUTE PROCEDURE update_delta_writes_view_5();
+	
+	
+	
+# Encode the program:
+# author|SELECT author.* FROM author WHERE author.aid = 100920;
+# writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
+# Result: treated like end semantics! deleted all writes tuples and all author tuples with this aid.
+
+
+CREATE OR REPLACE FUNCTION update_author_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM author WHERE author.aid = 100920;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_author_5
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_author_view_5();
+
+CREATE OR REPLACE FUNCTION update_delta_author_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_author values (old.aid, old.name, old.oid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_author_5
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_delta_author_view_5();
+
+	
+	
+CREATE OR REPLACE FUNCTION update_writes_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'INSERT') THEN
+            DELETE FROM writes USING delta_author WHERE writes.aid = delta_author.aid;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_writes_5
+    AFTER INSERT ON delta_author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_writes_view_5();
+
+
+CREATE OR REPLACE FUNCTION update_delta_writes_view_5() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_writes values (old.aid, old.pid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_writes_5
+    AFTER DELETE ON writes
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_delta_writes_view_5();

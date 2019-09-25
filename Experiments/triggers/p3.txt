@@ -1,0 +1,98 @@
+# Encode the program:
+# author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# Result: treated like alphabeitically deleted just the author tuple.
+
+
+CREATE OR REPLACE FUNCTION update_author_view_3() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM author USING writes WHERE author.aid = writes.aid AND author.aid = 100920;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_author_3
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_author_view();
+
+CREATE OR REPLACE FUNCTION update_delta_author_view_3() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_author values (old.aid, old.name, old.oid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_author_3
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_delta_author_view_3();
+
+CREATE OR REPLACE FUNCTION update_writes_view_3() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM writes USING author WHERE author.aid = writes.aid AND author.aid = 100920;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_writes_3
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_writes_view();
+	
+CREATE OR REPLACE FUNCTION update_delta_writes_view_3() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_writes values (old.aid, old.pid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_writes_3
+    AFTER DELETE ON writes
+    FOR EACH ROW EXECUTE PROCEDURE update_delta_writes_view_3();
+	
+# Encode the program:
+# author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# NOW WITH ''FOR EACH STATEMENT''
+# Result: endless recursion! did not delete anything! 
+
+
+CREATE OR REPLACE FUNCTION update_author_view_3() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM author USING writes WHERE author.aid = writes.aid AND author.aid = 100920;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_author_3
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_author_view();
+
+
+CREATE OR REPLACE FUNCTION update_writes_view_3() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM writes USING author WHERE author.aid = writes.aid AND author.aid = 100920;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_writes_3
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_writes_view();
+	

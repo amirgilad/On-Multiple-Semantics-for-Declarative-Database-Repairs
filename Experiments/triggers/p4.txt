@@ -1,0 +1,125 @@
+# Encode the program:
+# author|SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+# organization|SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+# Result: treated alphabeitically, deletes the authors first and not the org!
+
+
+CREATE OR REPLACE FUNCTION update_author_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM author USING organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_author_4
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_author_view_4();
+
+CREATE OR REPLACE FUNCTION update_delta_author_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_author values (old.aid, old.name, old.oid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_author_4
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_delta_author_view_4();
+
+CREATE OR REPLACE FUNCTION update_organization_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM organization USING author WHERE author.oid = organization.oid AND organization.oid = 16045;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_organization_4
+    AFTER DELETE ON author
+    FOR EACH ROW EXECUTE PROCEDURE update_organization_view_4();
+
+CREATE OR REPLACE FUNCTION update_delta_organization_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_organization values (old.oid, old.name);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_organization_4
+    AFTER DELETE ON organization
+    FOR EACH ROW EXECUTE PROCEDURE update_delta_organization_view_4();	
+	
+# Encode the program:
+# author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# NOW WITH ''FOR EACH STATEMENT''
+# Result: endless recursion! did not delete anything! 
+
+
+CREATE OR REPLACE FUNCTION update_author_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM author USING organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_author_4
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_author_view_4();
+
+CREATE OR REPLACE FUNCTION update_delta_author_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_author values (old.aid, old.name, old.oid);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_author_4
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_delta_author_view_4();
+
+CREATE OR REPLACE FUNCTION update_organization_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            DELETE FROM organization USING author WHERE author.oid = organization.oid AND organization.oid = 16045;
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_organization_4
+    AFTER DELETE ON author
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_organization_view_4();
+	
+CREATE OR REPLACE FUNCTION update_delta_organization_view_4() RETURNS TRIGGER AS $$
+    BEGIN
+        IF (TG_OP = 'DELETE') THEN
+            INSERT INTO delta_organization values (old.oid, old.name);
+			RETURN NEW;
+        END IF;
+		RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_delta_organization_4
+    AFTER DELETE ON organization
+    FOR EACH STATEMENT EXECUTE PROCEDURE update_delta_organization_view_4();	
+	

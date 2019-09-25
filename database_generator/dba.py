@@ -197,34 +197,3 @@ class DatabaseEngine():
         return results
 
 
-# class Rule():
-#
-#     def __init__(self, conn, table_name, conds):
-#         self.head = table_name
-#         self.body = conds
-#         self.dba = conn
-#         self.i = 0
-#
-#     def fire(self):
-#         if self.i == 0:
-#             changed = self.fire_start()
-#         else:
-#             changed = self.fire_cont()
-#         self.i += 1
-#         # if self.head.lower() == 'delta_p':
-#         #     prov = self.dba.execute_query('select R.id from R inner join delta_P on R.provsql=delta_P.R_id')
-#         #     prov += self.dba.execute_query('select delta_Q.id from delta_Q inner join delta_P on delta_Q.provsql=delta_P.delta_Q_id')
-#         #     print('prov of delta_P IS: ', prov)
-#         return changed
-#
-#     def fire_cont(self):
-#         self.dba.execute_query("CREATE TABLE " + self.head + str(self.i) + " AS SELECT " + self.body + ";")
-#         changed_rows = self.dba.execute_query("INSERT INTO " + self.head + " SELECT * FROM " + self.head + str(self.i) + ";")
-#         self.dba.execute_query('DROP TABLE ' + self.head + str(self.i) + ';')
-#         return changed_rows != None and changed_rows > 0
-#
-#     def fire_start(self):
-#         self.dba.execute_query('DROP TABLE ' + self.head + ';')
-#         self.dba.execute_query("CREATE TABLE " + self.head + " AS SELECT " + self.body + ";")
-#         self.is_first_time = False
-#         return True

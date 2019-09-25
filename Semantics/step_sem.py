@@ -78,8 +78,6 @@ class StepSemantics(AbsSemantics):
                     continue
 
                 for assignment in cur_assignments:
-                    # this is a weird bug: Python thinks that an assignment is in assignments but it is not
-                    # actually there. This is not the right fix
                     if assignment not in assignments:
                         assignments.append(assignment)
                         derived_tuples.add(assignment[0])
