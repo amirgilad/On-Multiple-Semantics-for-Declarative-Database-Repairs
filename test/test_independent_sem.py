@@ -6,7 +6,7 @@ import unittest
 
 class TestIndependentSemantics(unittest.TestCase):
 
-    schema = {"author": ('aid',
+    mas_schema = {"author": ('aid',
                          'name',
                          'oid'),
               "publication": ('pid',
@@ -27,14 +27,77 @@ class TestIndependentSemantics(unittest.TestCase):
                              'citation_count',
                              'importance'),
 
-              "domain_conference" : ('cid', 'did'),
+                  "domain_conference" : ('cid', 'did'),
 
-              "domain" : ('did',
+                  "domain" : ('did',
                           'name',
                           'paper_count',
                           'importance'),
 
-              "cite" : ('citing', 'cited')
+                  "cite" : ('citing', 'cited')
+                  }
+
+    tpch_schema = {"customer": ('c_custkey',
+                           'c_name',
+                           'c_address',
+                           'c_nationkey',
+                           'c_phone',
+                           'c_acctbal',
+                           'C_MKTSEGMENT',
+                           'c_comment'),
+              "lineitem": ('L_ORDERKEY',
+                           'L_PARTKEY',
+                           'L_SUPPKEY',
+                           'L_LINENUMBER',
+                           'L_QUANTITY',
+                           'L_EXTENDEDPRICE',
+                           'L_DISCOUNT',
+                           'L_TAX',
+                           'L_RETURNFLAG',
+                           'L_LINESTATUS',
+                           'L_SHIPDATE',
+                           'L_COMMITDATE',
+                           'L_RECEIPTDATE',
+                           'L_SHIPINSTRUCT',
+                           'L_SHIPMODE',
+                           'L_COMMENT'),
+              "nation": ('N_NATIONKEY',
+                         'N_NAME',
+                         'N_REGIONKEY',
+                         'N_COMMENT'),
+              "orders": ('O_ORDERKEY',
+                         'O_CUSTKEY',
+                         'O_ORDERSTATUS',
+                         'O_TOTALPRICE',
+                         'O_ORDERDATE',
+                         'O_ORDERPRIORITY',
+                         'O_CLERK',
+                         'O_SHIPPRIORITY',
+                         'O_COMMENT'),
+              "part": ('P_PARTKEY',
+                       'P_NAME',
+                       'P_MFGR',
+                       'P_BRAND',
+                       'P_TYPE',
+                       'P_SIZE',
+                       'P_CONTAINER',
+                       'P_RETAILPRICE',
+                       'P_COMMENT'),
+              "partsupp": ('PS_PARTKEY',
+                           'PS_SUPPKEY',
+                           'PS_AVAILQTY',
+                           'PS_SUPPLYCOST',
+                           'PS_COMMENT'),
+              "region": ('R_REGIONKEY',
+                         'R_NAME',
+                         'R_COMMENT'),
+              "supplier": ('S_SUPPKEY',
+                           'S_NAME',
+                           'S_ADDRESS',
+                           'S_NATIONKEY',
+                           'S_PHONE',
+                           'S_ACCTBAL',
+                           'S_COMMENT')
               }
 
     def test_undefined_connection(self):
@@ -50,7 +113,7 @@ class TestIndependentSemantics(unittest.TestCase):
         tbl_names = ["organization", "author", "publication", "writes"]
         db = DatabaseEngine("cr")
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
 
         self.assertEqual(mss, set(), "MSS supposed to be empty! Instead its " + str(mss))
 
@@ -83,7 +146,7 @@ class TestIndependentSemantics(unittest.TestCase):
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
         cur_prov = db.execute_query(prov_rules[0][1])
-        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
+        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.mas_schema, proj, prov_rules[0])
         self.assertTrue(all(a[0][0] == 'delta_author' for a in assignments))
 
     def test_solve_boolean_formula_with_z3_smt2(self):
@@ -125,7 +188,7 @@ class TestIndependentSemantics(unittest.TestCase):
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
         cur_prov = db.execute_query(prov_rules[0][1])
-        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
+        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.mas_schema, proj, prov_rules[0])
         ind_sem.process_provenance(assignments)
         self.assertTrue(all("delta_" in k[0] for k in ind_sem.provenance))
 
@@ -142,7 +205,7 @@ class TestIndependentSemantics(unittest.TestCase):
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
         cur_prov = db.execute_query(prov_rules[0][1])
-        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.schema, proj, prov_rules[0])
+        assignments = ind_sem.rows_to_prov(cur_prov, prov_tbls[0], self.mas_schema, proj, prov_rules[0])
         ind_sem.process_provenance(assignments)
         bf = ind_sem.convert_to_bool_formula()
         assert (len(ind_sem.prov_notations.keys()) == len(set(ind_sem.prov_notations.values())))
@@ -164,7 +227,7 @@ class TestIndependentSemantics(unittest.TestCase):
 
         results = db.execute_query("SELECT author.* FROM author WHERE author.name like '%m%';")
         results += db.execute_query("SELECT writes.* FROM writes WHERE writes.aid = 58525;")
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         # print("size of mss is ", len(mss), "and size of results is ", len(results))
         self.assertTrue(len(mss) == len(results))
 
@@ -182,7 +245,7 @@ class TestIndependentSemantics(unittest.TestCase):
 
         results = db.execute_query("SELECT author.* FROM author WHERE lower(author.name) like 'zohar dvir';")
         results += db.execute_query("SELECT writes.* FROM writes WHERE writes.aid = 58525;")
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         # print("size of mss is ", len(mss), "and size of results is ", len(results))
         self.assertTrue(len(mss) == len(results))
 
@@ -197,7 +260,7 @@ class TestIndependentSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         # MSS should only include the author tuple with aid = 100920
         self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
 
@@ -214,7 +277,7 @@ class TestIndependentSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         print(mss)
         # MSS should only include the author tuple with aid = 100920
         # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
@@ -232,7 +295,7 @@ class TestIndependentSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         print(mss)
         # MSS should only include the author tuple with aid = 100920
         # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
@@ -251,7 +314,7 @@ class TestIndependentSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss_ind = ind_sem.find_mss(self.schema)
+        mss_ind = ind_sem.find_mss(self.mas_schema)
         end_sem = EndSemantics(db, rules, tbl_names)
         mss_end = end_sem.find_mss()
         mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end])
@@ -270,7 +333,7 @@ class TestIndependentSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         print(mss)
         # MSS should only include the organization tuple with aid = 100920
         self.assertTrue(len(mss) == 1 and '16045' in next(iter(mss))[1])
@@ -286,7 +349,7 @@ class TestIndependentSemantics(unittest.TestCase):
         # db.load_database_tables(tbl_names)
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         print(mss)
         self.assertTrue(len(mss) == 3 and all('100920' in t[1] for t in mss))
 
@@ -300,6 +363,23 @@ class TestIndependentSemantics(unittest.TestCase):
         db = DatabaseEngine("cr")
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.schema)
+        mss = ind_sem.find_mss(self.mas_schema)
         print(mss)
         self.assertTrue(len(mss) == 5 and all('2352376' in t[1] for t in mss))
+
+    def test_tpch(self):
+        rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
+                 ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
+                 ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
+
+        tbl_names = ["region", "nation", "supplier", "customer"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.tpch_schema)
+        # print(mss)
+        print(len(mss))

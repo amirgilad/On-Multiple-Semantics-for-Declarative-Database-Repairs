@@ -181,3 +181,20 @@ class TestEndSemantics(unittest.TestCase):
 
         print("size of MSS should be the entire DB. Actual size:", len(mss), "results size:", res_size)
         self.assertTrue(len(mss) == res_size)
+
+    def test_tpch(self):
+        rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
+                 ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
+                 ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
+
+        tbl_names = ["region", "nation", "supplier", "customer", "partsupp", "orders"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        end_sem = EndSemantics(db, rules, tbl_names)
+        mss = end_sem.find_mss()
+        # print(mss)
+        print(len(mss))

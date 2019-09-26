@@ -173,3 +173,20 @@ class TestStageSemantics(unittest.TestCase):
         mss = stage_sem.find_mss()
         print(mss)
         self.assertTrue(len(mss) == 5 and all(2352376 in t[1] for t in mss))
+
+    def test_tpch(self):
+        rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
+                     ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
+                     ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
+
+        tbl_names = ["region", "nation", "supplier", "customer", "partsupp", "orders"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        stage_sem = StageSemantics(db, rules, tbl_names)
+        mss = stage_sem.find_mss()
+        print(mss)
+        print(len(mss))

@@ -374,3 +374,20 @@ class TestStepSemantics(unittest.TestCase):
         print(mss)
         self.assertTrue(len(mss) == 5 and all(2352376 in t[1] for t in mss))
 
+        def test_tpch(self):
+            rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
+                     ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
+                     ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
+
+        tbl_names = ["region", "nation", "supplier", "customer"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss = step_sem.find_mss(self.tpch_schema)
+        # print(mss)
+        print(len(mss))
+
