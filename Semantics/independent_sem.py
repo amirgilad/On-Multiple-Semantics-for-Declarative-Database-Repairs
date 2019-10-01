@@ -24,12 +24,16 @@ class IndependentSemantics(AbsSemantics):
         if not self.rules:   # verify more than 0 rules
             return set()
 
-        # delete database and reload with all possible and impossible delta tuples
+        # delete database
         self.db.delete_tables(self.delta_tuples.keys())
-        self.db.load_database_tables(self.delta_tuples.keys(), is_delta=True)
+        # self.db.load_database_tables(self.delta_tuples.keys(), is_delta=True)
 
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
+
+        # reload database with all possible and impossible relevant delta tuples
+        relevant_tables = [item for sublist in prov_tbls for item in sublist if "delta" not in item]
+        self.db.load_database_tables(relevant_tables, is_delta=True)
 
         # evaluate the program
         assignments = self.eval(schema, prov_rules, prov_tbls, proj)

@@ -9,7 +9,7 @@ import csv
 
 class Experiments:
     """All experiment functions for a given database and rules. Includes: size comparison, runtime, and containment"""
-    schema = {"author": ('aid',
+    mas_schema = {"author": ('aid',
                          'name',
                          'oid'),
               "publication": ('pid',
@@ -30,19 +30,85 @@ class Experiments:
                              'citation_count',
                              'importance'),
 
-              "domain_conference" : ('cid', 'did'),
+                  "domain_conference" : ('cid', 'did'),
 
-              "domain" : ('did',
+                  "domain" : ('did',
                           'name',
                           'paper_count',
                           'importance'),
 
-              "cite" : ('citing', 'cited')
-              }
+                  "cite" : ('citing', 'cited')
+                  }
+    tpch_schema = {"customer": ('c_custkey',
+                                'c_name',
+                                'c_address',
+                                'c_nationkey',
+                                'c_phone',
+                                'c_acctbal',
+                                'C_MKTSEGMENT',
+                                'c_comment'),
+                   "lineitem": ('L_ORDERKEY',
+                                'L_PARTKEY',
+                                'L_SUPPKEY',
+                                'L_LINENUMBER',
+                                'L_QUANTITY',
+                                'L_EXTENDEDPRICE',
+                                'L_DISCOUNT',
+                                'L_TAX',
+                                'L_RETURNFLAG',
+                                'L_LINESTATUS',
+                                'L_SHIPDATE',
+                                'L_COMMITDATE',
+                                'L_RECEIPTDATE',
+                                'L_SHIPINSTRUCT',
+                                'L_SHIPMODE',
+                                'L_COMMENT'),
+                   "nation": ('N_NATIONKEY',
+                              'N_NAME',
+                              'N_REGIONKEY',
+                              'N_COMMENT'),
+                   "orders": ('O_ORDERKEY',
+                              'O_CUSTKEY',
+                              'O_ORDERSTATUS',
+                              'O_TOTALPRICE',
+                              'O_ORDERDATE',
+                              'O_ORDERPRIORITY',
+                              'O_CLERK',
+                              'O_SHIPPRIORITY',
+                              'O_COMMENT'),
+                   "part": ('P_PARTKEY',
+                            'P_NAME',
+                            'P_MFGR',
+                            'P_BRAND',
+                            'P_TYPE',
+                            'P_SIZE',
+                            'P_CONTAINER',
+                            'P_RETAILPRICE',
+                            'P_COMMENT'),
+                   "partsupp": ('PS_PARTKEY',
+                                'PS_SUPPKEY',
+                                'PS_AVAILQTY',
+                                'PS_SUPPLYCOST',
+                                'PS_COMMENT'),
+                   "region": ('R_REGIONKEY',
+                              'R_NAME',
+                              'R_COMMENT'),
+                   "supplier": ('S_SUPPKEY',
+                                'S_NAME',
+                                'S_ADDRESS',
+                                'S_NATIONKEY',
+                                'S_PHONE',
+                                'S_ACCTBAL',
+                                'S_COMMENT')
+                   }
 
     def __init__(self, rule_file):
-        self.tbl_names = ["organization", "author", "publication", "writes", "cite"]
-        self.db = DatabaseEngine("cr")
+        if "tpch" not in rule_file:
+            self.tbl_names = ["organization", "author", "publication", "writes", "cite"]
+            self.db = DatabaseEngine("cr")
+        else:
+            self.tbl_names = ["customer", "lineitem", "nation", "orders", "part", "partsupp", "region", "supplier"]
+            self.db = DatabaseEngine("tpch")
         self.programs = self.read_rules(rule_file)
         self.filename = rule_file
 
@@ -53,6 +119,8 @@ class Experiments:
 
     def find_mss_all_semantics(self, rules):
         """finds the mss for all semantics"""
+        schema = self.mas_schema if all(name in self.mas_schema for name in self.tbl_names) else self.tpch_schema
+
         self.database_reset()
         ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
         end_sem = EndSemantics(self.db, rules, self.tbl_names)
@@ -62,7 +130,7 @@ class Experiments:
         # find mss for independent semantics
         self.database_reset()
         start = time.time()
-        mss_ind = ind_sem.find_mss(self.schema)
+        mss_ind = ind_sem.find_mss(schema)
         end = time.time()
         runtime_ind = end - start
         print("done with ind")
@@ -86,7 +154,7 @@ class Experiments:
         # find mss for step semantics
         self.database_reset()
         start = time.time()
-        mss_step = step_sem.find_mss(self.schema)
+        mss_step = step_sem.find_mss(schema)
         end = time.time()
         runtime_step = end - start
         print("done with step")
@@ -106,7 +174,7 @@ class Experiments:
         prov_rules, prov_tbls, proj = step_sem.gen_prov_rules()
 
         # evaluate the program and update delta tables
-        assignments = step_sem.eval(self.schema, prov_rules, prov_tbls, proj)
+        assignments = step_sem.eval(self.mas_schema, prov_rules, prov_tbls, proj)
 
         end = time.time()
         runtime_eval = end - start
@@ -144,7 +212,7 @@ class Experiments:
         prov_rules, prov_tbls, proj = ind_sem.gen_prov_rules()
 
         # evaluate the program
-        assignments = ind_sem.eval(self.schema, prov_rules, prov_tbls, proj)
+        assignments = ind_sem.eval(self.mas_schema, prov_rules, prov_tbls, proj)
 
         end = time.time()
         runtime_eval = end - start
@@ -193,9 +261,10 @@ class Experiments:
                                         mss_ind <= mss_step_strs])
             print("Program ", idx, "/", len(self.programs), "completed")
 
-        self.write_to_csv("size_experiments_" + self.filename[:-4] + ".csv", size_results)
-        self.write_to_csv("containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
-        self.write_to_csv("runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
+        prefix = "" if all(name in self.mas_schema for name in self.tbl_names) else "tpch_"
+        self.write_to_csv(prefix + "size_experiments_" + self.filename[:-4] + ".csv", size_results)
+        self.write_to_csv(prefix + "containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
+        self.write_to_csv(prefix + "runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
 
     def run_experiments_breakdown(self, sem):
         """runs the runtime breakdown experiments for step and independent semantics"""
@@ -239,19 +308,23 @@ class Experiments:
 
 
 # third set with increasing number of rules relying on each other
-ex = Experiments("num_rules_programs.txt")
-# ex.run_experiments()
-ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
+# ex = Experiments("num_rules_programs.txt")
+# # ex.run_experiments()
+# ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("independent")
+#
+# # first set with general assortment of programs
+# ex = Experiments("programs.txt")
+# # ex.run_experiments()
+# ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("independent")
+#
+# # second set with increasing number of joins in a rule
+# ex = Experiments("join_programs.txt")
+# # ex.run_experiments()
+# ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("independent")
 
-# first set with general assortment of programs
-ex = Experiments("programs.txt")
-# ex.run_experiments()
-ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
 
-# second set with increasing number of joins in a rule
-ex = Experiments("join_programs.txt")
-# ex.run_experiments()
-ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
+ex = Experiments("tpch_programs.txt")
+ex.run_experiments()

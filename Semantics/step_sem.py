@@ -56,7 +56,11 @@ class StepSemantics(AbsSemantics):
                 else:
                     prov_proj += tbl + ".*, "
             prov_proj = prov_proj[:-2]
-            q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + "WHERE" + rest[1]
+            # q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + "WHERE" + rest[1]
+            if len(rest) > 1:
+                q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + "WHERE" + rest[1]
+            else:
+                q_prov = "SELECT " + prov_proj + " FROM" + rest[0] + ";"
             prov_rules.append((query[0], q_prov))
         return prov_rules, prov_tbls, proj
 
