@@ -32,7 +32,7 @@ class IndependentSemantics(AbsSemantics):
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
 
         # reload database with all possible and impossible relevant delta tuples
-        relevant_tables = [item for sublist in prov_tbls for item in sublist if "delta" not in item]
+        relevant_tables = list(set([item for sublist in prov_tbls for item in sublist if "delta" not in item]))
         self.db.load_database_tables(relevant_tables, is_delta=True)
 
         # evaluate the program
@@ -56,23 +56,43 @@ class IndependentSemantics(AbsSemantics):
         changed = True
         derived_tuples = set()
         prev_len = 0
-        while changed:
-            for i in range(len(self.rules)):
-                cur_rows = self.db.execute_query(prov_rules[i][1])
-                cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+        for i in range(len(self.rules)):
+            cur_rows = self.db.execute_query(prov_rules[i][1])
+            cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
 
-                # optimization: check if any new assignments before iterating over them
-                if all(assign in assignments for assign in cur_assignments):
-                    continue
+            # optimization: check if any new assignments before iterating over them
+            # if all(assign in assignments for assign in cur_assignments):
+            #     continue
 
-                for assignment in cur_assignments:
-                    if assignment not in assignments:
-                        assignments.append(assignment)
-                        derived_tuples.add(assignment[0])
-            if prev_len == len(derived_tuples):
-                changed = False
-            prev_len = len(derived_tuples)
+            for assignment in cur_assignments:
+                if assignment not in assignments:
+                    assignments.append(assignment)
         return assignments
+
+    # def eval(self, schema, prov_rules, prov_tbls, proj):
+    #     """Use end semantics to derive all possible and impossible delta tuples and store the provenance"""
+    #     assignments = []   # var to store the assignments
+    #
+    #     changed = True
+    #     derived_tuples = set()
+    #     prev_len = 0
+    #     while changed:
+    #         for i in range(len(self.rules)):
+    #             cur_rows = self.db.execute_query(prov_rules[i][1])
+    #             cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
+    #
+    #             # optimization: check if any new assignments before iterating over them
+    #             if all(assign in assignments for assign in cur_assignments):
+    #                 continue
+    #
+    #             for assignment in cur_assignments:
+    #                 if assignment not in assignments:
+    #                     assignments.append(assignment)
+    #                     # derived_tuples.add(assignment[0])
+    #         if prev_len == len(derived_tuples):
+    #             changed = False
+    #         prev_len = len(derived_tuples)
+    #     return assignments
 
     def gen_prov_rules(self):
         """convert every rule to a rule that outputs the provenance"""

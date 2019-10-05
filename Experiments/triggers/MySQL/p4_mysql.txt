@@ -1,0 +1,42 @@
+# Encode the program:
+# author|SELECT author.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+# organization|SELECT organization.* FROM author, organization WHERE author.oid = organization.oid AND organization.oid = 16045;
+# Result: 0.016 seconds. treated by the order the triggers were written, so if author trigger first, deleted authors, o.w. deleted a single org tuple
+
+
+DELIMITER //
+CREATE TRIGGER update_organization_4 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE o from organization as o INNER JOIN author as a ON a.oid = o.oid WHERE o.oid = 16045;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_organization_4 AFTER DELETE ON organization
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_organization values (old.oid, old.name);
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_author_4 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE a from author as a INNER JOIN organization as o ON a.oid = o.oid WHERE o.oid = 16045;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_author_4 AFTER DELETE ON author
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_author values (old.aid, old.name, old.oid);
+  END; //
+  
+DELIMITER ;

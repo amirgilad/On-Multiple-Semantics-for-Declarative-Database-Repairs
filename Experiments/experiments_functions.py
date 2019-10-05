@@ -127,14 +127,6 @@ class Experiments:
         stage_sem = StageSemantics(self.db, rules, self.tbl_names)
         step_sem = StepSemantics(self.db, rules, self.tbl_names)
 
-        # find mss for independent semantics
-        self.database_reset()
-        start = time.time()
-        mss_ind = ind_sem.find_mss(schema)
-        end = time.time()
-        runtime_ind = end - start
-        print("done with ind")
-
         # find mss for end semantics
         self.database_reset()
         start = time.time()
@@ -158,6 +150,14 @@ class Experiments:
         end = time.time()
         runtime_step = end - start
         print("done with step")
+
+        # find mss for independent semantics
+        self.database_reset()
+        start = time.time()
+        mss_ind = ind_sem.find_mss(schema)
+        end = time.time()
+        runtime_ind = end - start
+        print("done with ind")
 
         return mss_end, mss_stage, mss_step, mss_ind, runtime_end, runtime_stage, runtime_step, runtime_ind
 
@@ -314,11 +314,12 @@ class Experiments:
 # ex.run_experiments_breakdown("independent")
 #
 # # first set with general assortment of programs
-# ex = Experiments("programs.txt")
-# # ex.run_experiments()
-# ex.run_experiments_breakdown("step")
-# ex.run_experiments_breakdown("independent")
-#
+ex = Experiments("tpch_programs.txt")
+ex.run_experiments()
+
+# ex = Experiments("programs_test_tpch.txt")
+# ex.run_experiments()
+
 # # second set with increasing number of joins in a rule
 # ex = Experiments("join_programs.txt")
 # # ex.run_experiments()
@@ -326,5 +327,5 @@ class Experiments:
 # ex.run_experiments_breakdown("independent")
 
 
-ex = Experiments("tpch_programs.txt")
-ex.run_experiments()
+# ex = Experiments("tpch_programs.txt")
+# ex.run_experiments()

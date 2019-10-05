@@ -1,0 +1,76 @@
+# Encode the program:
+# author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# publication|SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;
+# publication|SELECT publication.* FROM publication, writes, delta_author WHERE publication.pid = writes.pid AND writes.aid = delta_author.aid;
+# Result: 0.17 seconds. Treated like step semantics! if author triggers were first, deleted all author tuples and all publication tuples with the appropriate pid. O.w. deleted writes tuples and publication tuples associated with them.
+
+DELIMITER //
+CREATE TRIGGER update_author_8 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE a from author as a INNER JOIN writes as w ON a.aid = w.aid WHERE a.aid = 100920;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_author_8 AFTER DELETE ON author
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_author values (old.aid, old.name, old.oid);
+  END; //
+  
+DELIMITER ;
+
+
+
+
+DELIMITER //
+CREATE TRIGGER update_writes_8 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE w from writes as w INNER JOIN author as a ON a.aid = w.aid WHERE a.aid = 100920;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_writes_8 AFTER DELETE ON writes
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_writes values (old.aid, old.pid);
+  END; //
+  
+DELIMITER ;
+
+
+
+
+DELIMITER //
+CREATE TRIGGER update_publication_8_1 AFTER INSERT ON delta_writes
+  FOR EACH ROW
+  BEGIN
+    DELETE p from publication as p INNER JOIN delta_writes as dw ON dw.pid = p.pid INNER JOIN author as a ON a.aid = dw.aid;
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_publication_8_2 AFTER INSERT ON delta_author
+  FOR EACH ROW
+  BEGIN
+    DELETE p from publication as p INNER JOIN writes as w ON p.pid = w.pid INNER JOIN delta_author as da ON da.aid = w.aid;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_publication_8 AFTER DELETE ON publication
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_publication values (old.pid, old.title, old.year);
+  END; //
+  
+DELIMITER ;

@@ -1,0 +1,104 @@
+# Encode the program:
+# author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# Result: treated like end semantics. Computation timed out.
+
+
+
+DELIMITER //
+CREATE TRIGGER update_organization_20 AFTER DELETE ON dummy_event
+  FOR EACH ROW
+  BEGIN
+    DELETE o from organization as o WHERE o.oid = 16045;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_organization_20 AFTER DELETE ON organization
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_organization values (old.oid, old.name);
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_author_20 AFTER INSERT ON delta_organization
+  FOR EACH ROW
+  BEGIN
+    DELETE a from author as a INNER JOIN delta_organization as o ON a.oid = o.oid;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_author_20 AFTER DELETE ON author
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_author values (old.aid, old.name, old.oid);
+  END; //
+  
+DELIMITER ;
+
+
+
+DELIMITER //
+CREATE TRIGGER update_writes_20 AFTER INSERT ON delta_author
+  FOR EACH ROW
+  BEGIN
+    DELETE w from writes as w INNER JOIN delta_author as da ON da.aid = w.aid;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_writes_20 AFTER DELETE ON writes
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_writes values (old.aid, old.pid);
+  END; //
+  
+DELIMITER ;
+
+
+
+DELIMITER //
+CREATE TRIGGER update_publication_20 AFTER INSERT ON delta_writes
+  FOR EACH ROW
+  BEGIN
+    DELETE p from publication as p INNER JOIN delta_writes as dw ON dw.pid = p.pid;
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_delta_publication_20 AFTER DELETE ON publication
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_publication values (old.pid, old.title, old.year);
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_cite_20 AFTER INSERT ON delta_publication
+  FOR EACH ROW
+  BEGIN
+    DELETE c from cite as c INNER JOIN delta_publication as dp ON dp.pid = c.citing;
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_delta_cite_20 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_cite values (old.citing, old.cited);
+  END; //
+  
+DELIMITER ;

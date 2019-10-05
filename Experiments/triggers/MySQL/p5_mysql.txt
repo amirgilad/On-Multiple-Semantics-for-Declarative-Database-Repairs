@@ -1,0 +1,41 @@
+# Encode the program:
+# author|SELECT author.* FROM author WHERE author.aid = 100920;
+# writes|SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;
+# Result: treated like end semantics! deleted all writes tuples and all author tuples with this aid.
+
+DELIMITER //
+CREATE TRIGGER update_author_5 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE a from author as a WHERE a.aid = 100920;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_author_5 AFTER DELETE ON author
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_author values (old.aid, old.name, old.oid);
+  END; //
+  
+DELIMITER ;
+
+
+DELIMITER //
+CREATE TRIGGER update_writes_5 AFTER INSERT ON delta_author
+  FOR EACH ROW
+  BEGIN
+    DELETE w from writes as w INNER JOIN delta_author as da ON da.aid = w.aid;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_writes_5 AFTER DELETE ON writes
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_writes values (old.aid, old.pid);
+  END; //
+  
+DELIMITER ;

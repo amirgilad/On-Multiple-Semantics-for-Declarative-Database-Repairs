@@ -1,22 +1,19 @@
-nation|SELECT nation.* FROM nation WHERE nation.N_NATIONKEY = 3;
-supplier|SELECT supplier.* FROM supplier, customer, delta_nation WHERE supplier.S_NATIONKEY = delta_nation.N_NATIONKEY AND customer.C_NATIONKEY = delta_nation.N_NATIONKEY AND supplier.S_SUPPKEY < 3000;
-
 partsupp|SELECT partsupp.* FROM partsupp, supplier  WHERE supplier.s_suppkey = 1 AND supplier.s_suppkey = partsupp.PS_SUPPKEY;
-lineitem|SELECT lineitem.* FROM lineitem, delta_partsupp WHERE delta_partsupp.PS_SUPPKEY = lineitem.l_SUPPKEY;
+lineitem|SELECT lineitem.* FROM lineitem, delta_partsupp WHERE delta_partsupp.PS_SUPPKEY = lineitem.l_SUPPKEY AND delta_partsupp.PS_SUPPKEY = 1;
 
 partsupp|SELECT partsupp.* FROM partsupp, supplier, part  WHERE supplier.s_suppkey = 1 AND supplier.s_suppkey = partsupp.PS_SUPPKEY AND partsupp.PS_PARTKEY = part.P_PARTKEY;
-lineitem|SELECT lineitem.* FROM lineitem, delta_partsupp WHERE delta_partsupp.PS_SUPPKEY = lineitem.l_SUPPKEY;
+lineitem|SELECT lineitem.* FROM lineitem, delta_partsupp WHERE delta_partsupp.PS_SUPPKEY = lineitem.l_SUPPKEY AND delta_partsupp.ps_suppkey = 1;
 
 lineitem|SELECT lineitem.* FROM lineitem, delta_partsupp WHERE lineitem.l_orderkey = 1;
-supplier|SELECT supplier.* FROM supplier, delta_lineitem WHERE supplier.s_suppkey = delta_lineitem.L_SUPPKEY;
-customer|SELECT customer.* FROM customer, orders, delta_lineitem WHERE customer.c_custkey = orders.o_custkey AND orders.O_ORDERKEY = delta_lineitem.L_ORDERKEY;
+supplier|SELECT supplier.* FROM supplier, delta_lineitem WHERE supplier.s_suppkey = delta_lineitem.L_SUPPKEY AND delta_lineitem.l_orderkey = 1;
+customer|SELECT customer.* FROM customer, orders, delta_lineitem WHERE customer.c_custkey = orders.o_custkey AND orders.O_ORDERKEY = delta_lineitem.L_ORDERKEY AND delta_lineitem.l_orderkey = 1;
 
 nation|SELECT nation.* FROM nation WHERE nation.N_NATIONKEY = 1;
-supplier|SELECT supplier.* FROM supplier, customer, delta_nation WHERE supplier.S_NATIONKEY = delta_nation.N_NATIONKEY AND customer.C_NATIONKEY = delta_nation.N_NATIONKEY;
-customer|SELECT customer.* FROM supplier, customer, delta_nation WHERE supplier.S_NATIONKEY = delta_nation.N_NATIONKEY AND customer.C_NATIONKEY = delta_nation.N_NATIONKEY;
+supplier|SELECT supplier.* FROM supplier, customer, delta_nation WHERE supplier.S_NATIONKEY = delta_nation.N_NATIONKEY AND customer.C_NATIONKEY = delta_nation.N_NATIONKEY AND customer.c_custkey < 1000 AND delta_nation.N_NATIONKEY = 1;
+customer|SELECT customer.* FROM supplier, customer, delta_nation WHERE supplier.S_NATIONKEY = delta_nation.N_NATIONKEY AND customer.C_NATIONKEY = delta_nation.N_NATIONKEY AND customer.c_custkey < 1000 AND delta_nation.N_NATIONKEY = 1;
 
 supplier|SELECT supplier.* FROM supplier WHERE supplier.s_suppkey = 1 or supplier.s_suppkey = 2;
-customer|SELECT customer.* FROM delta_supplier, partsupp, lineitem, customer WHERE customer.C_ORDERKEY = lineitem.L_ORDERKEY AND lineitem.L_SUPPKEY = supplier.S_SUPPKEY;
+customer|SELECT customer.* FROM delta_supplier, partsupp, lineitem, customer, orders WHERE customer.C_custkey = orders.O_custkey AND orders.O_ORDERKEY = lineitem.L_ORDERKEY AND lineitem.L_SUPPKEY = delta_supplier.S_SUPPKEY AND (delta_supplier.s_suppkey = 1 or delta_supplier.s_suppkey = 2);
 
 orders|SELECT orders.* FROM customer, orders WHERE customer.c_custkey = orders.o_custkey AND customer.c_custkey = 1;
 partsupp|SELECT partsupp.* FROM supplier, partsupp WHERE supplier.s_suppkey = partsupp.PS_SUPPKEY AND supplier.s_suppkey = 1;

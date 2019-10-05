@@ -1,0 +1,46 @@
+# Encode the program:
+# author|SELECT author.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# writes|SELECT writes.* FROM author, writes WHERE author.aid = writes.aid AND author.aid = 100920;
+# Result: 0.093 sec. Depending on the order of the triggers, either writes tuples are dleted if the writes trigger is written first or author tuples are deleted if it is the other way around
+
+DELIMITER //
+CREATE TRIGGER update_author_3 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE a from author as a INNER JOIN writes as w ON a.aid = w.aid WHERE a.aid = 100920;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_author_3 AFTER DELETE ON author
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_author values (old.aid, old.name, old.oid);
+  END; //
+  
+DELIMITER ;
+
+
+
+
+DELIMITER //
+CREATE TRIGGER update_writes_3 AFTER DELETE ON cite
+  FOR EACH ROW
+  BEGIN
+    DELETE w from writes as w INNER JOIN author as a ON a.aid = w.aid WHERE a.aid = 100920;
+  END; //
+  
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER update_delta_writes_3 AFTER DELETE ON writes
+  FOR EACH ROW
+  BEGIN
+    INSERT INTO delta_writes values (old.aid, old.pid);
+  END; //
+  
+DELIMITER ;
+
+
+ 
