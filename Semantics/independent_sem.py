@@ -50,26 +50,6 @@ class IndependentSemantics(AbsSemantics):
         mss = self.convert_sat_sol_to_mss(sol)
         return mss
 
-    # def eval(self, schema, prov_rules, prov_tbls, proj):
-    #     """Use end semantics to derive all possible and impossible delta tuples and store the provenance"""
-    #     assignments = []   # var to store the assignments
-    #
-    #     changed = True
-    #     derived_tuples = set()
-    #     prev_len = 0
-    #     for i in range(len(self.rules)):
-    #         cur_rows = self.db.execute_query(prov_rules[i][1])
-    #         cur_assignments = self.rows_to_prov(cur_rows, prov_tbls[i], schema, proj, prov_rules[i])
-    #
-    #         # optimization: check if any new assignments before iterating over them
-    #         # if all(assign in assignments for assign in cur_assignments):
-    #         #     continue
-    #
-    #         for assignment in cur_assignments:
-    #             if assignment not in assignments:
-    #                 assignments.append(assignment)
-    #     return assignments
-
     def eval(self, schema, prov_rules, prov_tbls, proj):
         """Use end semantics to derive all possible and impossible delta tuples and store the provenance"""
         assignments = []   # var to store the assignments
@@ -136,7 +116,6 @@ class IndependentSemantics(AbsSemantics):
             # attrs = ",".join(["'" + t + "'" if "\r" not in t else "'" + t[:-4] + "'" for t in str_row[s:e]])
             attrs = ",".join([t if "\r" not in t else t[:-4] for t in str_row[s:e]])
             txt_tbl = (tbl, "(" + attrs + ")")
-            # self.prov_notations[]
             assignment_tuples.append(txt_tbl)
             if rule[0] == txt_tbl[0]:
                 ans = ("delta_" + txt_tbl[0], txt_tbl[1])

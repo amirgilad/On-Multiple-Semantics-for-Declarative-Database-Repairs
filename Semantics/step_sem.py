@@ -169,13 +169,10 @@ class StepSemantics(AbsSemantics):
             mss_from_layer = set()
             deltas_in_layer_without_delta = set()
             arg_max = None
-            # while len(deltas_in_layer) != len(mss_from_layer):
             # while it is the first iteration or the difference set between the deltas and the tuples chosen for this
             # layer is empty
             while (ly != [] and len(mss_from_layer) == 0) or len(deltas_in_layer_without_delta - mss_from_layer) > 0:
                 if arg_max is not None:
-                    # if arg_max in mss_from_layer: # did not find a new max - need to exit the loop
-                    #     break
                     mss.add(arg_max)
                     mss_from_layer.add(arg_max)
                 self.gen_updated_graph(arg_max, prov_dict)

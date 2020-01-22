@@ -57,7 +57,7 @@ def add_dups(filename, frag_size, num_errors, num_dups, dcs):
             cnt += 1
 
     orig_rows_long = [[val for val in orig_rows[0]]]
-    for i in range(dups):
+    for i in range(num_dups):
         orig_rows_long.extend([[val for val in row] for row in orig_rows if "aid" not in row])
     error_rows = [[val for val in row] for row in orig_rows_long]
 

@@ -132,11 +132,12 @@ class HoloCompare:
         self.write_to_csv(prefix + "containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
         self.write_to_csv(prefix + "runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
 
-    def change_databases(self):
+    def change_databases(self, isErrors=True):
         """"runs size, containment, and runtime comparison between the semantics for all programs"""
-        size_results = [["Errors", "End Size", "Stage Size", "Step Size", "Independent Size"]]
-        runtime_results = [["Errors", "End Runtime", "Stage Runtime", "Step Runtime", "Independent Runtime"]]
-        containment_results = [["Errors", "Stage in End", "Step in End", "Step in Stage", "Stage in Step", "Independent in End",
+        var = "Errors" if isErrors else "Rows"
+        size_results = [[var, "End Size", "Stage Size", "Step Size", "Independent Size"]]
+        runtime_results = [[var, "End Runtime", "Stage Runtime", "Step Runtime", "Independent Runtime"]]
+        containment_results = [[var, "Stage in End", "Step in End", "Step in Stage", "Stage in Step", "Independent in End",
                                 "Independent in Stage", "Independent in Step"]]
 
         for i in range(len(self.tbl_files)):
@@ -164,7 +165,7 @@ class HoloCompare:
 
             print("Database number", i+1, "/", len(self.tbl_files), "completed")
 
-        prefix = "changing_database_" + self.tbl_names[0] + "_"
+        prefix = var + "_changing_" + self.tbl_names[0] + "_"
         self.write_to_csv(prefix + "size_experiments_" + self.filename[:-4] + ".csv", size_results)
         self.write_to_csv(prefix + "containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
         self.write_to_csv(prefix + "runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
@@ -210,13 +211,13 @@ class HoloCompare:
         return all_programs
 
 
-# err_num = [100, 200, 300, 500, 700, 1000]
-# ex = HoloCompare("holoclean_hauthor_programs.txt", err_num)
-# ex.change_databases()
-
-row_num = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
-ex = HoloCompare("holoclean_hauthor_programs.txt", row_num, isErrors=False)
+err_num = [100, 200, 300, 500, 700, 1000]
+ex = HoloCompare("holoclean_hauthor_programs.txt", err_num)
 ex.change_databases()
+
+# row_num = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
+# ex = HoloCompare("holoclean_hauthor_programs.txt", row_num, isErrors=False)
+# ex.change_databases(isErrors=False)
 
 # ex = HoloCompare("holoclean_hospital_programs.txt")
 # ex.change_programs()

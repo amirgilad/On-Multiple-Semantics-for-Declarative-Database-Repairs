@@ -2,6 +2,8 @@ import psycopg2
 import logging
 import io
 from psycopg2._psycopg import IntegrityError
+import sys
+sys.path.append('..\\')
 
 
 class DatabaseEngine():
@@ -229,6 +231,7 @@ class DatabaseEngine():
         cursor = self.connection.cursor()
         for name in lst_names:
             # specific for HoloClean experiments
+            path = "..\\database_generator\\experiment_dbs\\"
             if any(char.isdigit() for char in name):
                 s_name = name.split("_")[0]
                 schema = self.holocomp_schema
@@ -237,12 +240,12 @@ class DatabaseEngine():
                 s_name = name
             else:
                 s_name = name
-            # with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\experiment_dbs\\"+name+".csv") as f:
-            with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
+                path = "..\\database_generator\\"
+            with open(path+name+".csv") as f:
                 # cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
                 cursor.copy_expert("COPY " + s_name + schema[s_name] + " FROM STDIN DELIMITER ',' CSV;", f)
             if is_delta:
-                with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\experiment_dbs\\"+name+".csv") as f:
+                with open(path+name+".csv") as f:
                     # cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
                     cursor.copy_expert("COPY delta_" + s_name + schema[s_name] + " FROM STDIN DELIMITER ',' CSV;", f)
 
