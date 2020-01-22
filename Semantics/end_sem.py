@@ -1,5 +1,5 @@
 from Semantics.abs_sem import *
-
+import time
 
 class EndSemantics(AbsSemantics):
     """This class implements end semantics. This is standard datalog semantics of deriving all delta tuples, \Delta(t),
@@ -17,12 +17,18 @@ class EndSemantics(AbsSemantics):
         while changed:
             for i in range(len(self.rules)):
                 results = self.db.execute_query(self.rules[i][1])
-                self.delta_tuples[self.rules[i][0]].update(results)
                 mss.update([(self.rules[i][0], row) for row in results])
+                # start = time.time()
                 self.db.delta_update(self.rules[i][0], results)   # update delta table in db
+                # end = time.time()
+                # print("time to update delta table", self.rules[i][0], " in end semantics is", end-start)
+                self.delta_tuples[self.rules[i][0]].update(results)
             changed = prev_len != len(mss)
             prev_len = len(mss)
         # update original tables at the end of the evaluation
         for i in range(len(self.rules)):
+            # start = time.time()
             self.db.delete(self.rules[i], self.delta_tuples[self.rules[i][0]])
+            # end = time.time()
+            # print("time to delete tuples", self.rules[i][0], " in end semantics is", end-start)
         return mss

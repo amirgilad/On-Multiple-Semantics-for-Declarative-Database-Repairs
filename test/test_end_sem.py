@@ -182,12 +182,35 @@ class TestEndSemantics(unittest.TestCase):
         print("size of MSS should be the entire DB. Actual size:", len(mss), "results size:", res_size)
         self.assertTrue(len(mss) == res_size)
 
+    def test_dc_like_author(self):
+        rules = [("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+                 ]
+        tbl_names = ["hauthor_100_errors"]
+        db = DatabaseEngine("cr")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        end_sem = EndSemantics(db, rules, ["hauthor"])
+        mss = end_sem.find_mss()
+
+        print("size of MSS:", len(mss))
+        self.assertTrue(True)
+
     def test_tpch(self):
         rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
                  ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
                  ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
 
-        tbl_names = ["region", "nation", "supplier", "customer", "partsupp", "orders"]
+        tbl_names = ["region", "nation", "supplier", "customer", "partsupp", "orders", "lineitem", "part"]
         db = DatabaseEngine("tpch")
 
         # reset the database

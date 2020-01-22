@@ -6,9 +6,8 @@ import unittest
 
 class TestIndependentSemantics(unittest.TestCase):
 
-    mas_schema = {"author": ('aid',
-                         'name',
-                         'oid'),
+    mas_schema = {
+              "author": ('aid','name','oid'),
               "publication": ('pid',
                               'title',
                               'year'),
@@ -99,7 +98,11 @@ class TestIndependentSemantics(unittest.TestCase):
                            'S_ACCTBAL',
                            'S_COMMENT')
               }
-
+    holocomp_schema = {
+        "hospital": ("ProviderNumber", "HospitalName", "Address1", "City", "State", "ZipCode", "CountyName", "PhoneNumber", "HospitalType", "HospitalOwner", "EmergencyService", "Condition", "MeasureCode", "MeasureName", "Score", "Sample", "Stateavg"),
+        "hauthor": ('aid', 'name', 'oid', 'organization'),
+        "flights": ('src', 'flight', 'scheduled_dept', 'actual_dept	dept_gate', 'scheduled_arrival', 'actual_arrival', 'arrival_gate')
+    }
     def test_undefined_connection(self):
         """test no db connection"""
         rules = [("author", "SELECT * FROM author WHERE author.aid = 58525;")]
@@ -161,6 +164,19 @@ class TestIndependentSemantics(unittest.TestCase):
         ind_sem.prov_notations = {'a': 'a', 'b': 'b', 'c': 'c'}
         sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf)
         self.assertTrue(all(assign in str(sol) for assign in ["a = True", "b = True", "c = False"]))
+
+    def test_solve_boolean_formula_with_z3_smt2_case2(self):
+        """test func that finds the minimum satisfying assignment to a boolean formula"""
+        bf = '(and (or (not a) b) (or (not b) (not c) (not d)))'
+
+        rules = []
+        tbl_names = []
+        db = DatabaseEngine("cr")
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        ind_sem.prov_notations = {'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd'}
+        sol = ind_sem.solve_boolean_formula_with_z3_smt2(bf)
+        print(str(sol))
 
     def test_solve_boolean_formula_with_z3_smt2_not(self):
         """test func that finds the minimum satisfying assignment to a boolean formula"""
@@ -265,7 +281,7 @@ class TestIndependentSemantics(unittest.TestCase):
         self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
 
     def test_mss_hard_case_2(self):
-        """test case with two rules with the same body"""
+        """test case with three rules"""
         rules = [("author", "SELECT author.* FROM author WHERE author.aid = 100920;"),
                  ("writes", "SELECT writes.* FROM writes, delta_author WHERE writes.aid = delta_author.aid;"),
                  ("publication", "SELECT publication.* FROM publication, delta_writes, author WHERE publication.pid = delta_writes.pid AND delta_writes.aid = author.aid;")]
@@ -278,16 +294,16 @@ class TestIndependentSemantics(unittest.TestCase):
 
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         mss = ind_sem.find_mss(self.mas_schema)
+        # MSS should include 1 author and 2 writes
         print(mss)
-        # MSS should only include the author tuple with aid = 100920
-        # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
+        self.assertTrue(len(mss) == 3)
 
     def test_mss_hard_case_3(self):
         """test case with two rules with the same body"""
         rules = [("publication", "SELECT publication.* FROM publication WHERE publication.pid = 2352376;"),
                  ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.citing = delta_publication.pid AND cite.citing < 2700;"),
                  ("cite", "SELECT cite.* FROM cite, delta_publication WHERE cite.cited = delta_publication.pid AND cite.cited < 2700;")]
-        tbl_names = ["organization", "author", "publication", "writes"]
+        tbl_names = ["organization", "author", "publication", "writes", "cite"]
         db = DatabaseEngine("cr")
 
         # reset the database
@@ -297,8 +313,6 @@ class TestIndependentSemantics(unittest.TestCase):
         ind_sem = IndependentSemantics(db, rules, tbl_names)
         mss = ind_sem.find_mss(self.mas_schema)
         print(mss)
-        # MSS should only include the author tuple with aid = 100920
-        # self.assertTrue(len(mss) == 1 and '100920' == next(iter(mss))[1][1:7])
 
     def test_mss_hard_case_4(self):
         """test case with two dependent rules
@@ -367,6 +381,60 @@ class TestIndependentSemantics(unittest.TestCase):
         print(mss)
         self.assertTrue(len(mss) == 5 and all('2352376' in t[1] for t in mss))
 
+    def test_dc_like_author(self):
+        rules = [("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+                 ]
+        tbl_names = ["hauthor_100_errors"]
+        db = DatabaseEngine("holocomp")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.holocomp_schema, suffix="_100_errors")
+        print(len(mss))
+
+        db.delete_tables(tbl_names)
+        self.assertTrue(len(mss) == 200)
+
+    def test_dc_like_hospital(self):
+        rules = [("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.condition) = lower(hospital2.condition) AND lower(hospital1.MeasureName) = lower(hospital2.MeasureName) AND "
+                              "lower(hospital1.HospitalType) <> lower(hospital2.HospitalType);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.ZipCode) <> lower(hospital2.ZipCode);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.PhoneNumber) <> lower(hospital2.PhoneNumber);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.MeasureCode) = lower(hospital2.MeasureCode) AND lower(hospital1.MeasureName) <> lower(hospital2.MeasureName);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.MeasureCode) = lower(hospital2.MeasureCode) AND lower(hospital1.Stateavg) <> lower(hospital2.Stateavg);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.ProviderNumber) = lower(hospital2.ProviderNumber) AND lower(hospital1.HospitalName) <> lower(hospital2.HospitalName);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.MeasureCode) = lower(hospital2.MeasureCode) AND lower(hospital1.Condition) <> lower(hospital2.Condition);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.Address1) <> lower(hospital2.Address1);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.HospitalOwner) <> lower(hospital2.HospitalOwner);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.ProviderNumber) <> lower(hospital2.ProviderNumber);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.PhoneNumber) = lower(hospital2.PhoneNumber) AND "
+                              "lower(hospital1.HospitalOwner) = lower(hospital2.HospitalOwner) AND lower(hospital1.State) <> lower(hospital2.State);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.City) = lower(hospital2.City) AND lower(hospital1.CountyName) <> lower(hospital2.CountyName);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.ZipCode) = lower(hospital2.ZipCode) AND lower(hospital1.EmergencyService) <> lower(hospital2.EmergencyService);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.HospitalName) = lower(hospital2.HospitalName) AND lower(hospital1.City) <> lower(hospital2.City);"),
+                 ("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.MeasureName) = lower(hospital2.MeasureName) AND lower(hospital1.MeasureCode) <> lower(hospital2.MeasureCode);")
+                 ]
+        tbl_names = ["hospital"]
+        db = DatabaseEngine("holocomp")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        mss = ind_sem.find_mss(self.holocomp_schema, suffix="")
+        print(len(mss))
+
+        db.delete_tables(tbl_names)
+        self.assertTrue(len(mss) == 200)
+
+
     def test_tpch(self):
         rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
                  ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
@@ -383,3 +451,29 @@ class TestIndependentSemantics(unittest.TestCase):
         mss = ind_sem.find_mss(self.tpch_schema)
         # print(mss)
         print(len(mss))
+
+    def test_tpch_prog_4(self):
+        rules = [("lineitem","SELECT lineitem.* FROM lineitem WHERE lineitem.l_orderkey < 3000;"),
+                 ("supplier","SELECT supplier.* FROM supplier, delta_lineitem WHERE supplier.s_suppkey = delta_lineitem.L_SUPPKEY AND delta_lineitem.l_orderkey < 3000;"),
+                 ("customer","SELECT customer.* FROM customer, orders, delta_lineitem WHERE customer.c_custkey = orders.o_custkey AND orders.O_ORDERKEY = delta_lineitem.L_ORDERKEY AND delta_lineitem.l_orderkey < 3000;")]
+
+        tbl_names = ["lineitem", "orders", "supplier", "customer"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        ind_sem = IndependentSemantics(db, rules, tbl_names)
+        ind_mss = ind_sem.find_mss(self.tpch_schema)
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        end_sem = EndSemantics(db, rules, tbl_names)
+        end_mss = end_sem.find_mss()
+        print("is there an orders tuple in inde MSS?", any("orders" in t[0] for t in ind_mss))
+        mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in end_mss])
+        print(len(ind_mss) == len(end_mss))
+        print(ind_mss <= mss_end_strs)

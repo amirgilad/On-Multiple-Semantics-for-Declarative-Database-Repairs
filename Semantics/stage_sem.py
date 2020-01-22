@@ -1,5 +1,5 @@
 from Semantics.abs_sem import *
-
+import time
 
 class StageSemantics(AbsSemantics):
     """This class implements stage semantics. This is similar to seminaive
@@ -15,6 +15,9 @@ class StageSemantics(AbsSemantics):
         mss = set()
         changed = True
         prev_len = 0
+
+        cnt = 1
+
         while changed:
             changed = False
             for i in range(len(self.rules)):
@@ -25,6 +28,13 @@ class StageSemantics(AbsSemantics):
             prev_len = len(mss)
             # update original tables at the end of each evaluation step
             for i in range(len(self.rules)):
+                # start = time.time()
                 self.db.delete(self.rules[i], self.delta_tuples[self.rules[i][0]])
+                # end = time.time()
+                # print("time to delete tuples", self.rules[i][0], " in stage semantics is", end-start)
+                # start = time.time()
                 self.db.delta_update(self.rules[i][0], self.delta_tuples[self.rules[i][0]])   # update delta table in db
+                # end = time.time()
+                # print("time to update tuples", self.rules[i][0], " in stage semantics is", end-start)
+            cnt += 1
         return mss

@@ -114,7 +114,11 @@ class Experiments:
 
     def database_reset(self):
         """reset the database"""
+        res = self.db.execute_query("select current_database();")
+        db_name = res[0][0]
         self.db.delete_tables(self.tbl_names)
+        self.db.close_connection()
+        self.db = DatabaseEngine(db_name)
         self.db.load_database_tables(self.tbl_names)
 
     def find_mss_all_semantics(self, rules):
@@ -129,14 +133,17 @@ class Experiments:
 
         # find mss for end semantics
         self.database_reset()
+        end_sem = EndSemantics(self.db, rules, self.tbl_names)
         start = time.time()
         mss_end = end_sem.find_mss()
         end = time.time()
         runtime_end = end - start
         print("done with end")
+        print("mss size by end:", len(mss_end))
 
         # find mss for stage semantics
         self.database_reset()
+        stage_sem = StageSemantics(self.db, rules, self.tbl_names)
         start = time.time()
         mss_stage = stage_sem.find_mss()
         end = time.time()
@@ -145,6 +152,7 @@ class Experiments:
 
         # find mss for step semantics
         self.database_reset()
+        step_sem = StepSemantics(self.db, rules, self.tbl_names)
         start = time.time()
         mss_step = step_sem.find_mss(schema)
         end = time.time()
@@ -153,6 +161,7 @@ class Experiments:
 
         # find mss for independent semantics
         self.database_reset()
+        ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
         start = time.time()
         mss_ind = ind_sem.find_mss(schema)
         end = time.time()
@@ -253,12 +262,21 @@ class Experiments:
             runtime_results.append([idx, runtime_end, runtime_stage, runtime_step, runtime_ind])
 
             # change tuples to strings to comply with independent semantics format
-            mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end]) #set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_end])
-            mss_stage_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_stage]) #set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_stage])
-            mss_step_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end]) #set([(t[0], str(t[1]).replace("'", "").replace(", ", ",")) for t in mss_step])
-            containment_results.append([idx, mss_stage <= mss_end, mss_step <= mss_end, mss_step <= mss_stage,
-                                        mss_stage <= mss_step, mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs,
+            mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end])
+            mss_stage_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_stage])
+            mss_step_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end])
+            # containment_results.append([idx, mss_stage <= mss_end, mss_step <= mss_end, mss_step <= mss_stage,
+            #                             mss_stage <= mss_step, mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs,
+            #                             mss_ind <= mss_step_strs])
+
+            mss_end_short = set([(t[0], tuple(t[1][:3])) for t in mss_end])
+            mss_stage_short = set([(t[0], tuple(t[1][:3])) for t in mss_stage])
+            mss_step_short = set([(t[0], tuple(t[1][:3])) for t in mss_step])
+
+            containment_results.append([idx, mss_stage_short <= mss_end_short, mss_step_short <= mss_end_short, mss_step_short <= mss_stage_short,
+                                        mss_stage_short <= mss_step_short, mss_ind <= mss_end_strs, mss_ind <= mss_stage_strs,
                                         mss_ind <= mss_step_strs])
+
             print("Program ", idx, "/", len(self.programs), "completed")
 
         prefix = "" if all(name in self.mas_schema for name in self.tbl_names) else "tpch_"
@@ -307,25 +325,32 @@ class Experiments:
         return all_programs
 
 
+# first set with general assortment of programs
+ex = Experiments("programs.txt")
+ex.run_experiments()
+ex.run_experiments_breakdown("step")
+ex.run_experiments_breakdown("independent")
+
+
 # third set with increasing number of rules relying on each other
-# ex = Experiments("num_rules_programs.txt")
-# # ex.run_experiments()
-# ex.run_experiments_breakdown("step")
-# ex.run_experiments_breakdown("independent")
+ex = Experiments("num_rules_programs.txt")
+ex.run_experiments()
+ex.run_experiments_breakdown("step")
+ex.run_experiments_breakdown("independent")
 #
 # # first set with general assortment of programs
-ex = Experiments("tpch_programs.txt")
-ex.run_experiments()
+# ex = Experiments("tpch_programs.txt")
+# ex.run_experiments()
 
 # ex = Experiments("programs_test_tpch.txt")
 # ex.run_experiments()
 
 # # second set with increasing number of joins in a rule
-# ex = Experiments("join_programs.txt")
-# # ex.run_experiments()
-# ex.run_experiments_breakdown("step")
-# ex.run_experiments_breakdown("independent")
+ex = Experiments("join_programs.txt")
+ex.run_experiments()
+ex.run_experiments_breakdown("step")
+ex.run_experiments_breakdown("independent")
 
 
-# ex = Experiments("tpch_programs.txt")
-# ex.run_experiments()
+ex = Experiments("tpch_programs.txt")
+ex.run_experiments()

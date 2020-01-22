@@ -12,6 +12,7 @@ class TestStepSemantics(unittest.TestCase):
     mas_schema = {"author": ('aid',
                          'name',
                          'oid'),
+                  "hauthor": ('aid', 'name', 'oid', 'organization'),
               "publication": ('pid',
                               'title',
                               'year'),
@@ -100,6 +101,11 @@ class TestStepSemantics(unittest.TestCase):
                                 'S_ACCTBAL',
                                 'S_COMMENT')
                    }
+    holocomp_schema = {
+        "hospital": ("ProviderNumber", "HospitalName", "Address1", "City", "State", "ZipCode", "CountyName", "PhoneNumber", "HospitalType", "HospitalOwner", "EmergencyService", "Condition", "MeasureCode", "MeasureName", "Score", "Sample", "Stateavg"),
+        "hauthor": ('aid', 'name', 'oid', 'organization'),
+        "flights": ('src', 'flight', 'scheduled_dept', 'actual_dept	dept_gate', 'scheduled_arrival', 'actual_arrival', 'arrival_gate')
+    }
 
     def test_undefined_connection(self):
         """test no db connection"""
@@ -383,7 +389,7 @@ class TestStepSemantics(unittest.TestCase):
         step_sem = StepSemantics(db, rules, tbl_names)
         mss = step_sem.find_mss(self.mas_schema)
         print("size of MSS should be the entire DB. Actual size:", len(mss))
-        self.assertTrue(len(mss) > 27000)
+        self.assertTrue(len(mss) == 24798)
 
     def test_large_mss_2(self):
         rules = [("organization", "SELECT organization.* FROM organization WHERE organization.oid = 16045;"),
@@ -436,20 +442,75 @@ class TestStepSemantics(unittest.TestCase):
         print(mss)
         self.assertTrue(len(mss) == 5 and all(2352376 in t[1] for t in mss))
 
-        def test_tpch(self):
-            rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
-                     ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
-                     ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
+    def test_dc_like_author(self):
+        rules = [("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
+                 ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+                 ]
+        tbl_names = ["hauthor_200_errors"]
+        db = DatabaseEngine("cr")
 
-            tbl_names = ["region", "nation", "supplier", "customer"]
-            db = DatabaseEngine("tpch")
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
 
-            # reset the database
-            db.delete_tables(tbl_names)
-            db.load_database_tables(tbl_names)
+        step_sem = StepSemantics(db, rules, ["hauthor"])
+        mss = step_sem.find_mss(self.mas_schema, suffix="_200_errors")
 
-            step_sem = StepSemantics(db, rules, tbl_names)
-            mss = step_sem.find_mss(self.tpch_schema)
-            # print(mss)
-            print(len(mss))
+        db.delete_tables(tbl_names)
+        print(len(mss))
+        self.assertTrue(len(mss) == 200)
+
+
+    def test_tpch(self):
+        rules = [("nation", "SELECT nation.* FROM nation WHERE nation.N_REGIONKEY = 1;"),
+                 ("customer", "SELECT customer.* FROM customer, nation WHERE nation.N_NATIONKEY = customer.C_NATIONKEY;"),
+                 ("supplier", "SELECT supplier.* FROM supplier, nation WHERE nation.N_NATIONKEY = supplier.S_NATIONKEY;")]
+
+        tbl_names = ["region", "nation", "supplier", "customer"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        mss = step_sem.find_mss(self.tpch_schema)
+        # print(mss)
+        print(len(mss))
+
+    def test_containment_tpch(self):
+        # pogram 1
+        # rules = [("partsupp","SELECT partsupp.* FROM partsupp, supplier  WHERE supplier.s_suppkey < 1000 AND supplier.s_suppkey = partsupp.PS_SUPPKEY;"),
+        # ("lineitem", "SELECT lineitem.* FROM lineitem, delta_partsupp WHERE delta_partsupp.PS_SUPPKEY = lineitem.l_SUPPKEY AND delta_partsupp.PS_SUPPKEY < 1000;")]
+
+        # pogram 2
+        rules = [("partsupp", "SELECT partsupp.* FROM partsupp WHERE partsupp.ps_suppkey < 1000;"),
+                 ("lineitem", "SELECT lineitem.* FROM lineitem, delta_partsupp WHERE delta_partsupp.PS_SUPPKEY = lineitem.l_SUPPKEY AND delta_partsupp.PS_SUPPKEY < 1000;")]
+        tbl_names = ["lineitem", "partsupp", "supplier"]
+        db = DatabaseEngine("tpch")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        stage_sem = StageSemantics(db, rules, tbl_names)
+        stage_mss = stage_sem.find_mss()
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+
+        step_sem = StepSemantics(db, rules, tbl_names)
+        step_mss = step_sem.find_mss(self.tpch_schema)
+
+
+        ordkey_step = [(t[0], tuple(t[1][:3])) for t in step_mss]
+        ordkey_end = [(t[0], tuple(t[1][:3])) for t in stage_mss]
+        print(len([p for p in ordkey_step if p not in ordkey_end]))
 

@@ -8,6 +8,7 @@ class DatabaseEngine():
 
     mas_schema = {
         "author": "(aid, name, oid)",
+        "hauthor": "(aid, name, oid, organization)", # for HoloClean comparison
         "writes": "(aid, pid)",
         "publication": "(pid, title, year)",
         "organization": "(oid, name)",
@@ -23,6 +24,12 @@ class DatabaseEngine():
                     "supplier": "(S_SUPPKEY, S_NAME, S_ADDRESS, S_NATIONKEY, S_PHONE, S_ACCTBAL, S_COMMENT)"
 
                     }
+    # for HoloClean comparison
+    holocomp_schema = {
+        "hospital": "(providernumber, HospitalName, Address1, City, State, ZipCode, CountyName, PhoneNumber, HospitalType, HospitalOwner, EmergencyService, Condition, MeasureCode, MeasureName, Score, Sample, Stateavg)",
+        "hauthor": "(aid, name, oid, organization)",
+        "flights": "(src, flight, scheduled_dept, actual_dept	dept_gate, scheduled_arrival, actual_arrival, arrival_gate)"
+    }
 
     def __init__(self, db_name):
         # create a connection to the database cr
@@ -131,7 +138,12 @@ class DatabaseEngine():
             return t
 
         name = rule[0]
-        schema = self.mas_schema if name in self.mas_schema else self.tpc_h_schema
+        if name in self.mas_schema:
+            schema = self.mas_schema
+        elif name in self.tpc_h_schema:
+            schema = self.mas_schema
+        else:
+            schema = self.holocomp_schema
         prefix = convert_str_tup(schema[name])[0]
         prefix2 = "" if name[0] != 'w' else 'pid'
         ps_delete_query = "DELETE FROM " + name + " WHERE " + prefix + " = %s"
@@ -140,6 +152,8 @@ class DatabaseEngine():
             rows_to_delete = [(row[0], row[1]) for row in rows]
         else:
             rows_to_delete = [(row[0], ) for row in rows]
+            if prefix == 'providernumber':
+                rows_to_delete = [(str(row[0]), ) for row in rows]
         cursor = self.connection.cursor()
         cursor.executemany(ps_delete_query, rows_to_delete)
         rows_affected = cursor.rowcount
@@ -190,6 +204,11 @@ class DatabaseEngine():
             "CREATE TABLE region (R_REGIONKEY int NOT NULL, R_NAME char(25) NOT NULL, R_COMMENT varchar(152) DEFAULT NULL);",
             "CREATE TABLE supplier (S_SUPPKEY int NOT NULL, S_NAME char(25) NOT NULL, S_ADDRESS varchar(40) NOT NULL, S_NATIONKEY int NOT NULL, S_PHONE char(15) NOT NULL, S_ACCTBAL decimal(15,2) NOT NULL, S_COMMENT varchar(101) NOT NULL);"
         ]
+        create_queries_prov_holo = [
+            "CREATE TABLE Delta_hospital (ProviderNumber varchar(10), HospitalName varchar(40), Address1 varchar(40), City varchar(20), State char(5), Zipcode char(7), CountyName char(20), PhoneNumber char(10), HospitalType char(25), HospitalOwner char(100), EmergencyService char(7), Condition varchar(100), MeasureCode varchar(25), MeasureName varchar(200), Score varchar(5), Sample varchar(20), Stateavg varchar(20));"
+            "CREATE TABLE Delta_hauthor (aid int, name varchar(60), oid int, organization varchar(100));",
+            "CREATE TABLE Delta_flights (src char(40), flight varchar(60), scheduled_dept varchar(60), actual_dept varchar(60), dept_gate varchar(50), scheduled_arrival  varchar(60), arrival_gate varchar(50));"
+        ]
         cursor = self.connection.cursor()
         for cq in create_queries_prov:
             cursor.execute(cq)
@@ -198,6 +217,9 @@ class DatabaseEngine():
 
     def delete_tables(self, lst_names):
         for name in lst_names:
+            # specific for HoloClean experiments
+            if any(char.isdigit() for char in name):
+                name = name.split("_")[0]
             self.execute_query("DELETE FROM " + name + ";")
             self.execute_query("DELETE FROM " + "delta_" + name + ";")
 
@@ -206,13 +228,23 @@ class DatabaseEngine():
         schema = self.mas_schema if all(name in self.mas_schema for name in lst_names) else self.tpc_h_schema
         cursor = self.connection.cursor()
         for name in lst_names:
+            # specific for HoloClean experiments
+            if any(char.isdigit() for char in name):
+                s_name = name.split("_")[0]
+                schema = self.holocomp_schema
+            elif name == "hospital":
+                schema = self.holocomp_schema
+                s_name = name
+            else:
+                s_name = name
+            # with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\experiment_dbs\\"+name+".csv") as f:
             with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
                 # cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
-                cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV;", f)
+                cursor.copy_expert("COPY " + s_name + schema[s_name] + " FROM STDIN DELIMITER ',' CSV;", f)
             if is_delta:
-                with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\"+name+".csv") as f:
+                with open("C:\\Users\\user\\git\\causal-rules\\database_generator\\experiment_dbs\\"+name+".csv") as f:
                     # cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
-                    cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV;", f)
+                    cursor.copy_expert("COPY delta_" + s_name + schema[s_name] + " FROM STDIN DELIMITER ',' CSV;", f)
 
 
 
@@ -236,7 +268,9 @@ class DatabaseEngine():
             self.execute_query('DROP TABLE Delta_' + name)
         logging.info("Deleted table " + name + " successfully in PostgreSQL ")
 
-
+    def save_tbl_as_csv(self, tbl_name, f_name):
+        save_query = "COPY " + tbl_name + " to 'C:\\Users\\Public\\" + f_name + "' csv header;"
+        self.execute_query(save_query)
 
     def execute_query(self, query):
         """execute a query on the database"""

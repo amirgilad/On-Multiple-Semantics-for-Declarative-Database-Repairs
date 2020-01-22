@@ -12,7 +12,7 @@ class StepSemantics(AbsSemantics):
 
         self.prov_graph = nx.DiGraph()   # the provenance graph
 
-    def find_mss(self, schema):
+    def find_mss(self, schema, suffix = ""):
         """implementation of end semantics where updates
         to the rules are at the end of the evaluation"""
 
@@ -22,18 +22,32 @@ class StepSemantics(AbsSemantics):
         # convert the rules so they will store the provenance
         prov_rules, prov_tbls, proj = self.gen_prov_rules()
 
+        # change for holoclean experiment
+        for i in range(len(prov_tbls)):
+            prov_tbls[i] = [name.split(" as")[0] + suffix for name in prov_tbls[i]]
+
         # evaluate the program and update delta tables
         assignments = self.eval(schema, prov_rules, prov_tbls, proj)
+        print("number of assignments:", len(assignments))
 
         # process provenance into a graph
+        prov_dict = self.gen_prov_dict(assignments)
         self.gen_prov_graph(assignments)
         self.compute_benefits_and_removed_flags()
 
         # the "heart" of the algorithm. Traverse the prov. graph by layer
         # and greedily find for each layer the nodes whose derivation will
         # be most beneficial to stabilizing the database
-        mss = self.traverse_by_layer()
+        mss = self.traverse_by_layer(prov_dict)
         return mss
+
+    def gen_prov_dict(self, assignments):
+        d = {}
+        for a in assignments:
+            if a[0] not in d:
+                d[a[0]] = []
+            d[a[0]].append([a[1:], False])
+        return d
 
     def gen_prov_rules(self):
         """convert every rule to a rule that outputs the provenance"""
@@ -101,6 +115,9 @@ class StepSemantics(AbsSemantics):
         str_row = [str(e) for e in row]
         ans = ("", "")
         for tbl in prov_tbls:
+            # for holoclean expriment
+            if "_errors" in tbl:
+                tbl = tbl.split("_")[0]
             e = len(schema[tbl]) + s if 'delta_' not in tbl else len(schema[tbl[6:]]) + s
             attrs = [t if "\r" not in t else t[:-4] for t in str_row[s:e]]
             attrs = tuple([int(a) if a.isnumeric() else a for a in attrs])
@@ -142,7 +159,7 @@ class StepSemantics(AbsSemantics):
                 b_n = c_n - d_n
                 self.prov_graph.node[n]["benefit"] = b_n
 
-    def traverse_by_layer(self):
+    def traverse_by_layer(self, prov_dict):
         """traverse the graph by layers, compute the max benefit vertex for each layer,
         and greedily remove this vertex and all of its assignments it takes part in from the graph"""
         mss = set()   # the MSS according to the heuristic algorithm
@@ -150,12 +167,18 @@ class StepSemantics(AbsSemantics):
         for ly in layers[1:]:
             deltas_in_layer = [n for n in ly if "delta_" in n[0]]
             mss_from_layer = set()
+            deltas_in_layer_without_delta = set()
             arg_max = None
-            while len(deltas_in_layer) != len(mss_from_layer):
+            # while len(deltas_in_layer) != len(mss_from_layer):
+            # while it is the first iteration or the difference set between the deltas and the tuples chosen for this
+            # layer is empty
+            while (ly != [] and len(mss_from_layer) == 0) or len(deltas_in_layer_without_delta - mss_from_layer) > 0:
                 if arg_max is not None:
+                    # if arg_max in mss_from_layer: # did not find a new max - need to exit the loop
+                    #     break
                     mss.add(arg_max)
                     mss_from_layer.add(arg_max)
-                self.gen_updated_graph(arg_max)
+                self.gen_updated_graph(arg_max, prov_dict)
                 max_b = -1000001
                 for tup in ly:
                     orig_tup = (tup[0][6:], tup[1])
@@ -163,12 +186,12 @@ class StepSemantics(AbsSemantics):
                         max_b = self.prov_graph.node[(tup[0][6:], tup[1])]["benefit"]
                         arg_max = (tup[0][6:], tup[1])
                 deltas_in_layer = [x for x in deltas_in_layer if self.prov_graph.node[x]["removed"] is False]
-                # print(len(deltas_in_layer), len(mss))
+                deltas_in_layer_without_delta = set([(tup[0][6:], tup[1]) for tup in deltas_in_layer])
             if arg_max is not None:
                 mss.add(arg_max)
         return mss
 
-    def gen_updated_graph(self, arg_max):
+    def gen_updated_graph(self, arg_max, prov_dict):
         """"takes the previous prov. graph and the node just chosen for the MSS, arg_max,
         and creates a new graph without all the nodes connected to arg_max except \Delta(arg_max)"""
         if arg_max is None:
@@ -179,7 +202,14 @@ class StepSemantics(AbsSemantics):
             # check that the vertex is not a successor of \Delta(arg_max) or \Delta(arg_max) itself
             is_legal_successor = (n != ("delta_" + arg_max[0], arg_max[1])) \
                                  and (n not in self.prov_graph.successors(("delta_" + arg_max[0], arg_max[1])))
-            if is_legal_successor:
+            # check that in all assignments that derive n, there is at least one removed tuple
+            for a in prov_dict[n]:
+                # there is an assignment deriving n in which arg_max participates in, so need to update
+                if a[1] is False and arg_max in a[0]:
+                    a[1] = True
+            to_remove = all(a[1] is True for a in prov_dict[n])
+
+            if is_legal_successor and to_remove:
                 self.prov_graph.node[n]["removed"] = True
 
     def divide_into_layers(self):
