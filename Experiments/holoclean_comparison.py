@@ -198,7 +198,7 @@ class HoloCompare:
     def read_rules(self, rule_file):
         """read programs from txt file"""
         all_programs = []
-        with open(rule_file) as f:
+        with open("..\\data\\holocomp\\"+rule_file) as f:
             rules = []
             for line in f:
                 if line.strip():

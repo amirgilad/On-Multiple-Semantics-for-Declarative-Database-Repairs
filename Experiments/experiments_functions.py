@@ -308,7 +308,7 @@ class Experiments:
 
     def write_to_csv(self, fname, data):
         """write rows to CSV file"""
-        with open(fname, 'w', newline='') as csvFile:
+        with open("..\\reports\\" + fname, 'w', newline='') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(data)
         csvFile.close()
@@ -330,31 +330,31 @@ class Experiments:
 
 
 # first set with general assortment of programs
-ex = Experiments("programs.txt")
+ex = Experiments("..\\data\\mas\\programs.txt")
 # ex.run_experiments()
 ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 
 
 # third set with increasing number of rules relying on each other
-# ex = Experiments("num_rules_programs.txt")
+# ex = Experiments("..\\data\\mas\\num_rules_programs.txt")
 # ex.run_experiments()
 # ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 #
 # # first set with general assortment of programs
-# ex = Experiments("tpch_programs.txt")
+# ex = Experiments("..\\data\\tpch\\tpch_programs.txt")
 # ex.run_experiments()
 
-# ex = Experiments("programs_test_tpch.txt")
+# ex = Experiments("..\\data\\tpch\\programs_test_tpch.txt")
 # ex.run_experiments()
 
 # # second set with increasing number of joins in a rule
-# ex = Experiments("join_programs.txt")
+# ex = Experiments("..\\data\\mas\\join_programs.txt")
 # ex.run_experiments()
 # ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 
 
-# ex = Experiments("tpch_programs.txt")
+# ex = Experiments("..\\data\\tpch\\tpch_programs.txt")
 # ex.run_experiments()

@@ -158,7 +158,7 @@ def convert_from_holoclean_analysis_format(path, filename):
 # equal oid, not equal org_name
 dcs = [[0, 1], [0, 2], [0, 3], [2, 3]] #
 row_num = 1000
-path = "experiment_dbs//"
+path = "..\\data\\holocomp"
 
 # Create files with set number of rows and increasing errors
 # for error_num in [100, 200, 300, 500, 700, 1000]:
@@ -178,8 +178,8 @@ path = "experiment_dbs//"
 
 err = [100, 200, 300, 500, 700, 1000]
 for e in err:
-    convert_to_holoclean_analysis_format('..\\database_generator\\experiment_dbs','holoclean_hauthor_clean_' + str(e) +'_errors')
+    convert_to_holoclean_analysis_format('..\\data\\holocomp','holoclean_hauthor_clean_' + str(e) +'_errors')
 
 rows = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
 for r in rows:
-    convert_to_holoclean_analysis_format('..\\database_generator\\experiment_dbs','holoclean_hauthor_clean_' + str(r) +'_rows')
+    convert_to_holoclean_analysis_format('..\\data\\holocomp','holoclean_hauthor_clean_' + str(r) +'_rows')

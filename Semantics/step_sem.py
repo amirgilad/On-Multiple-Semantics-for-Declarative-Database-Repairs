@@ -201,15 +201,17 @@ class StepSemantics(AbsSemantics):
             # check that the vertex is not a successor of \Delta(arg_max) or \Delta(arg_max) itself
             is_legal_successor = (n != ("delta_" + arg_max[0], arg_max[1])) \
                                  and (n not in self.prov_graph.successors(("delta_" + arg_max[0], arg_max[1])))
-            # check that in all assignments that derive n, there is at least one removed tuple
-            for a in prov_dict[n]:
-                # there is an assignment deriving n in which arg_max participates in, so need to update
-                if a[1] is False and arg_max in a[0]:
-                    a[1] = True
-            to_remove = all(a[1] is True for a in prov_dict[n])
-
-            if is_legal_successor and to_remove:
+            if is_legal_successor:
                 self.prov_graph.node[n]["removed"] = True
+                # check that in all assignments that derive n, there is at least one removed tuple
+                for a in prov_dict[n]:
+                    # there is an assignment deriving n in which arg_max participates in, so need to update
+                    if a[1] is False and arg_max in a[0]:
+                        a[1] = True
+                self.prov_graph.node[n]["removed"] = all(a[1] is True for a in prov_dict[n])
+
+            # if is_legal_successor:
+            #     self.prov_graph.node[n]["removed"] = True
 
     def divide_into_layers(self):
         """takes the provenance graph and divides it into layers for the algorithm to traverse"""
