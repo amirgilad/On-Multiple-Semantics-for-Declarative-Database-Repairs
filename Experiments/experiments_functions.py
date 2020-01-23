@@ -125,17 +125,18 @@ class Experiments:
         """finds the mss for all semantics"""
         schema = self.mas_schema if all(name in self.mas_schema for name in self.tbl_names) else self.tpch_schema
 
-        self.database_reset()
-        ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
-        end_sem = EndSemantics(self.db, rules, self.tbl_names)
-        stage_sem = StageSemantics(self.db, rules, self.tbl_names)
-        step_sem = StepSemantics(self.db, rules, self.tbl_names)
+        # self.database_reset()
+        # ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
+        # end_sem = EndSemantics(self.db, rules, self.tbl_names)
+        # stage_sem = StageSemantics(self.db, rules, self.tbl_names)
+        # step_sem = StepSemantics(self.db, rules, self.tbl_names)
 
         # find mss for end semantics
         self.database_reset()
-        end_sem = EndSemantics(self.db, rules, self.tbl_names)
+        # end_sem = EndSemantics(self.db, rules, self.tbl_names)
         start = time.time()
-        mss_end = end_sem.find_mss()
+        # mss_end = end_sem.find_mss()
+        mss_end = set()
         end = time.time()
         runtime_end = end - start
         print("done with end")
@@ -143,9 +144,10 @@ class Experiments:
 
         # find mss for stage semantics
         self.database_reset()
-        stage_sem = StageSemantics(self.db, rules, self.tbl_names)
+        # stage_sem = StageSemantics(self.db, rules, self.tbl_names)
         start = time.time()
-        mss_stage = stage_sem.find_mss()
+        # mss_stage = stage_sem.find_mss()
+        mss_stage = set()
         end = time.time()
         runtime_stage = end - start
         print("done with stage")
@@ -161,9 +163,10 @@ class Experiments:
 
         # find mss for independent semantics
         self.database_reset()
-        ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
+        # ind_sem = IndependentSemantics(self.db, rules, self.tbl_names)
         start = time.time()
-        mss_ind = ind_sem.find_mss(schema)
+        # mss_ind = ind_sem.find_mss(schema)
+        mss_ind = set()
         end = time.time()
         runtime_ind = end - start
         print("done with ind")
@@ -190,6 +193,7 @@ class Experiments:
 
         # process provenance into a graph
         start = time.time()
+        prov_dict = step_sem.gen_prov_dict(assignments)
         step_sem.gen_prov_graph(assignments)
         step_sem.compute_benefits_and_removed_flags()
         end = time.time()
@@ -199,7 +203,7 @@ class Experiments:
         # and greedily find for each layer the nodes whose derivation will
         # be most beneficial to stabilizing the database
         start = time.time()
-        mss = step_sem.traverse_by_layer()
+        mss = step_sem.traverse_by_layer(prov_dict)
         end = time.time()
         runtime_graph_traversal = end - start
 
@@ -280,9 +284,9 @@ class Experiments:
             print("Program ", idx, "/", len(self.programs), "completed")
 
         prefix = "" if all(name in self.mas_schema for name in self.tbl_names) else "tpch_"
-        self.write_to_csv(prefix + "size_experiments_" + self.filename[:-4] + ".csv", size_results)
-        self.write_to_csv(prefix + "containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
-        self.write_to_csv(prefix + "runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
+        self.write_to_csv(prefix + "AFTER_FIX_STEP_size_experiments_" + self.filename[:-4] + ".csv", size_results)
+        self.write_to_csv(prefix + "AFTER_FIX_STEP_containment_experiments_" + self.filename[:-4] + ".csv", containment_results)
+        self.write_to_csv(prefix + "AFTER_FIX_STEP_runtime_experiments_" + self.filename[:-4] + ".csv", runtime_results)
 
     def run_experiments_breakdown(self, sem):
         """runs the runtime breakdown experiments for step and independent semantics"""
@@ -299,7 +303,7 @@ class Experiments:
             breakdown_results.append([idx, runtime_eval / total, runtime_process_prov / total, runtime_last / total])
 
             print("Program ", idx, "/", len(self.programs), "completed")
-        self.write_to_csv("runtime_breakdown_" + sem + "_" + self.filename[:-4] + ".csv", breakdown_results)
+        self.write_to_csv("AFTER_FIX_runtime_breakdown_" + sem + "_" + self.filename[:-4] + ".csv", breakdown_results)
 
 
     def write_to_csv(self, fname, data):
@@ -327,16 +331,16 @@ class Experiments:
 
 # first set with general assortment of programs
 ex = Experiments("programs.txt")
-ex.run_experiments()
+# ex.run_experiments()
 ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
+# ex.run_experiments_breakdown("independent")
 
 
 # third set with increasing number of rules relying on each other
-ex = Experiments("num_rules_programs.txt")
-ex.run_experiments()
-ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
+# ex = Experiments("num_rules_programs.txt")
+# ex.run_experiments()
+# ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("independent")
 #
 # # first set with general assortment of programs
 # ex = Experiments("tpch_programs.txt")
@@ -346,11 +350,11 @@ ex.run_experiments_breakdown("independent")
 # ex.run_experiments()
 
 # # second set with increasing number of joins in a rule
-ex = Experiments("join_programs.txt")
-ex.run_experiments()
-ex.run_experiments_breakdown("step")
-ex.run_experiments_breakdown("independent")
+# ex = Experiments("join_programs.txt")
+# ex.run_experiments()
+# ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("independent")
 
 
-ex = Experiments("tpch_programs.txt")
-ex.run_experiments()
+# ex = Experiments("tpch_programs.txt")
+# ex.run_experiments()

@@ -184,6 +184,8 @@ class StepSemantics(AbsSemantics):
                         arg_max = (tup[0][6:], tup[1])
                 deltas_in_layer = [x for x in deltas_in_layer if self.prov_graph.node[x]["removed"] is False]
                 deltas_in_layer_without_delta = set([(tup[0][6:], tup[1]) for tup in deltas_in_layer])
+                if not deltas_in_layer: # all delta atoms have been removed
+                    break
             if arg_max is not None:
                 mss.add(arg_max)
         return mss

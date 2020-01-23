@@ -333,7 +333,7 @@ class TestIndependentSemantics(unittest.TestCase):
         mss_end = end_sem.find_mss()
         mss_end_strs = set([(t[0], '('+','.join(str(x) for x in t[1])+')') for t in mss_end])
         # mss according to end should be equal to mss according to ind
-        self.assertTrue(len(mss_end_strs) ==  len(mss_ind))
+        self.assertTrue(len(mss_end_strs) == len(mss_ind))
 
     def test_mss_hard_case_5(self):
         """test case with two rules with the same body"""
@@ -399,7 +399,7 @@ class TestIndependentSemantics(unittest.TestCase):
         print(len(mss))
 
         db.delete_tables(tbl_names)
-        self.assertTrue(len(mss) == 200)
+        self.assertTrue(len(mss) == 100)
 
     def test_dc_like_hospital(self):
         rules = [("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.condition) = lower(hospital2.condition) AND lower(hospital1.MeasureName) = lower(hospital2.MeasureName) AND "

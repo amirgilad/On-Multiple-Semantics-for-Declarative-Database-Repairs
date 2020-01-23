@@ -227,20 +227,25 @@ class DatabaseEngine():
 
     def load_database_tables(self, lst_names, is_delta=False):
 
-        schema = self.mas_schema if all(name in self.mas_schema for name in lst_names) else self.tpc_h_schema
+        schema = None
+        path = ""
+        s_name = ""
+        if all(name in self.mas_schema for name in lst_names):
+            schema = self.mas_schema
+            path = "..\\data\\mas\\"
+        elif all(name in self.tpc_h_schema for name in lst_names):
+            schema = self.tpc_h_schema
+            path = "..\\data\\tpch\\"
+        else:
+            schema = self.holocomp_schema
+            path = "..\\data\\holocomp\\"
         cursor = self.connection.cursor()
         for name in lst_names:
             # specific for HoloClean experiments
-            path = "..\\database_generator\\experiment_dbs\\"
             if any(char.isdigit() for char in name):
                 s_name = name.split("_")[0]
-                schema = self.holocomp_schema
-            elif name == "hospital":
-                schema = self.holocomp_schema
-                s_name = name
             else:
                 s_name = name
-                path = "..\\database_generator\\"
             with open(path+name+".csv") as f:
                 # cursor.copy_expert("COPY " + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
                 cursor.copy_expert("COPY " + s_name + schema[s_name] + " FROM STDIN DELIMITER ',' CSV;", f)
