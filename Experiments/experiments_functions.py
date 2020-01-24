@@ -103,13 +103,16 @@ class Experiments:
                    }
 
     def __init__(self, rule_file):
+        subfolder = ""
         if "tpch" not in rule_file:
             self.tbl_names = ["organization", "author", "publication", "writes", "cite"]
             self.db = DatabaseEngine("cr")
+            subfolder = "mas\\"
         else:
             self.tbl_names = ["customer", "lineitem", "nation", "orders", "part", "partsupp", "region", "supplier"]
             self.db = DatabaseEngine("tpch")
-        self.programs = self.read_rules(rule_file)
+            subfolder = "tpch\\"
+        self.programs = self.read_rules("..\\data\\" + subfolder + rule_file)
         self.filename = rule_file
 
     def database_reset(self):
@@ -330,20 +333,20 @@ class Experiments:
 
 
 # first set with general assortment of programs
-ex = Experiments("..\\data\\mas\\programs.txt")
+# ex = Experiments("..\\data\\mas\\programs.txt")
 # ex.run_experiments()
-ex.run_experiments_breakdown("step")
+# ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 
 
 # third set with increasing number of rules relying on each other
-# ex = Experiments("..\\data\\mas\\num_rules_programs.txt")
+# ex = Experiments("num_rules_programs.txt")
 # ex.run_experiments()
 # ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 #
 # # first set with general assortment of programs
-# ex = Experiments("..\\data\\tpch\\tpch_programs.txt")
+# ex = Experiments("tpch_programs.txt")
 # ex.run_experiments()
 
 # ex = Experiments("..\\data\\tpch\\programs_test_tpch.txt")
@@ -356,5 +359,5 @@ ex.run_experiments_breakdown("step")
 # ex.run_experiments_breakdown("independent")
 
 
-# ex = Experiments("..\\data\\tpch\\tpch_programs.txt")
-# ex.run_experiments()
+ex = Experiments("tpch_programs.txt")
+ex.run_experiments()

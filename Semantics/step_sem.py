@@ -28,7 +28,7 @@ class StepSemantics(AbsSemantics):
 
         # evaluate the program and update delta tables
         assignments = self.eval(schema, prov_rules, prov_tbls, proj)
-        print("number of assignments:", len(assignments))
+        # print("number of assignments:", len(assignments))
 
         # process provenance into a graph
         prov_dict = self.gen_prov_dict(assignments)
@@ -42,6 +42,11 @@ class StepSemantics(AbsSemantics):
         return mss
 
     def gen_prov_dict(self, assignments):
+        '''generate a provenance dict:
+        keys: derived tuples \Delta(t)
+        values: list with 2 elements:
+                    (1) list: tuples that derived \Delta(t)
+                    (2) bool: Is there a deleted tuple in this assignment (initially False)'''
         d = {}
         for a in assignments:
             if a[0] not in d:

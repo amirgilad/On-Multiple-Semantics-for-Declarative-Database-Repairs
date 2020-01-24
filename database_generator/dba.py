@@ -43,7 +43,6 @@ class DatabaseEngine():
                                                port = "5432",
                                                database = db_name)
             self.connection.set_session(readonly=False, autocommit=True)
-            # self.execute_query('SET search_path TO public, provsql;')
 
         except (Exception, psycopg2.DatabaseError) as error :
             logging.info("Error while creating PostgreSQL table", error)
@@ -253,18 +252,6 @@ class DatabaseEngine():
                 with open(path+name+".csv") as f:
                     # cursor.copy_expert("COPY delta_" + name + schema[name] + " FROM STDIN DELIMITER ',' CSV HEADER;", f)
                     cursor.copy_expert("COPY delta_" + s_name + schema[s_name] + " FROM STDIN DELIMITER ',' CSV;", f)
-
-
-
-    # def delta_update(self, name):
-    #     sql_delete_query = 'DELETE FROM ' + name + ' USING Delta_' + name + ' WHERE ' + name + '.ID = ' + 'Delta_' + name + '.ID' + ';'
-    #     cursor = self.connection.cursor()
-    #     cursor.execute(sql_delete_query)
-    #     rows_affected = cursor.rowcount
-    #     self.connection.commit()
-    #     logging.info("Deleted from table successfully in PostgreSQL ")
-    #     cursor.close()
-    #     return rows_affected
 
 
     def drop_table(self, name):

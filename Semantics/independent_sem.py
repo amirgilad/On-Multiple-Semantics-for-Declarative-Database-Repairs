@@ -247,7 +247,6 @@ class IndependentSemantics(AbsSemantics):
         # >>> solve_boolean_formula_with_z3_smt2(bf, appeared_symbol_list)
         # ([b = True, a = False, c = False, s = 1], 1)
         """
-        # print(bf)
         appeared_symbol_list = list(set([a if "not " not in a else a[5:-1] for a in self.prov_notations.values()]))
         declaration_str = '\n'.join(list(map(lambda x: '(declare-const {} Bool)'.format(x), appeared_symbol_list)))
         declaration_str += '\n(declare-const s Int)'

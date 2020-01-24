@@ -190,7 +190,7 @@ class HoloCompare:
 
     def write_to_csv(self, fname, data):
         """write rows to CSV file"""
-        with open(fname, 'w', newline='') as csvFile:
+        with open("..\\reports\\" + fname, 'w', newline='') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(data)
         csvFile.close()
