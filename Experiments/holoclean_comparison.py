@@ -55,6 +55,7 @@ class HoloCompare:
         end = time.time()
         runtime_end = end - start
         self.db.save_tbl_as_csv(self.tbl_names[0], "fixed_end.csv")
+        self.check_zero_violations_semantics()
         print("done with end")
         print("mss size by end:", len(mss_end))
 
@@ -65,6 +66,7 @@ class HoloCompare:
         mss_stage = stage_sem.find_mss()
         end = time.time()
         runtime_stage = end - start
+        self.check_zero_violations_semantics()
         self.db.save_tbl_as_csv(self.tbl_names[0], "fixed_stage.csv")
         print("done with stage")
 
@@ -76,6 +78,7 @@ class HoloCompare:
         end = time.time()
         runtime_step = end - start
         self.db.delete(self.tbl_names, set([t[1] for t in mss_step]))
+        self.check_zero_violations_semantics()
         self.db.save_tbl_as_csv(self.tbl_names[0], "fixed_step.csv")
         print("done with step")
 
@@ -90,6 +93,7 @@ class HoloCompare:
         set_to_delete = [tuple(map(str, t[1][1:-1].split(','))) for t in mss_ind]
         self.db.delete(self.tbl_names, set_to_delete)
         self.db.save_tbl_as_csv(self.tbl_names[0], "fixed_ind.csv")
+        self.check_zero_violations_semantics()
         print("done with ind")
 
         return mss_end, mss_stage, mss_step, mss_ind, runtime_end, runtime_stage, runtime_step, runtime_ind
@@ -188,6 +192,34 @@ class HoloCompare:
                     num_rows_fixed_not_in_clean += 1
             print("number of rows in fixed file that are not in the clean file:", num_rows_fixed_not_in_clean)
 
+    def count_violations(self):
+        err = [100, 200, 300, 500, 700, 1000]
+        for e in err:
+            self.count_violations_datbase("hauthor_"+str(e)+"_errors")
+
+    def count_violations_datbase(self, fixed_name):
+        '''Get the fixed database of Holoclean and count the nubmer of violating tuples for each constraints'''
+        res = self.db.execute_query("select current_database();")
+        db_name = res[0][0]
+        self.db.delete_tables(self.tbl_names)
+        self.db.close_connection()
+        self.db = DatabaseEngine(db_name)
+        self.db.load_database_tables([fixed_name])
+
+        data = []
+        dcs = self.programs[0]
+        for dc in dcs:
+            num_violations = len(set(self.db.execute_query(dc[1])))
+            data.append([dc, num_violations])
+        self.write_to_csv("holoclean_remaining_violations_"+ fixed_name +".csv", data)
+
+    def check_zero_violations_semantics(self):
+        cnt = 0
+        dcs = self.programs[0]
+        for dc in dcs:
+            cnt += len(set(self.db.execute_query(dc[1])))
+        print("num violations:", cnt)
+
     def write_to_csv(self, fname, data):
         """write rows to CSV file"""
         with open("..\\reports\\" + fname, 'w', newline='') as csvFile:
@@ -214,6 +246,8 @@ class HoloCompare:
 err_num = [100, 200, 300, 500, 700, 1000]
 ex = HoloCompare("holoclean_hauthor_programs.txt", err_num)
 ex.change_databases()
+# ex.count_violations()
+# ex.count_violations_datbase("hauthor_100_errors")
 
 # row_num = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
 # ex = HoloCompare("holoclean_hauthor_programs.txt", row_num, isErrors=False)

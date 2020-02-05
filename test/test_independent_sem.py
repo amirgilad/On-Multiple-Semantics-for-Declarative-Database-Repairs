@@ -387,19 +387,44 @@ class TestIndependentSemantics(unittest.TestCase):
                  ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);"),
                  ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
                  ]
-        tbl_names = ["hauthor_100_errors"]
+        tbl_names = ["hauthor_300_errors"]
         db = DatabaseEngine("holocomp")
 
         # reset the database
         db.delete_tables(tbl_names)
         db.load_database_tables(tbl_names)
 
+        results1 = db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;")
+        res_set_stages = set(results1)
+        print("res for DC 1:", len(res_set_stages))
+        results2 = db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);")
+        res_set_stages = set(results2)
+        print("res for DC 2:", len(res_set_stages))
+        results3 = db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+        res_set_stages = set(results3)
+        print("res for DC 3:", len(res_set_stages))
+        results4 = db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+        res_set_stages = set(results4)
+        print("res for DC 4:", len(res_set_stages))
+
+        print("initial res len:", len(set(results1+results2+results3+results4)))
+
         ind_sem = IndependentSemantics(db, rules, tbl_names)
-        mss = ind_sem.find_mss(self.holocomp_schema, suffix="_100_errors")
+        mss = ind_sem.find_mss(self.holocomp_schema, suffix="_300_errors")
         print(len(mss))
 
+        # reset the database
         db.delete_tables(tbl_names)
-        self.assertTrue(len(mss) == 100)
+        db.load_database_tables(tbl_names)
+        set_to_delete = [tuple(map(str, t[1][1:-1].split(','))) for t in mss]
+        db.delete(["hauthor"], set_to_delete)
+        results = db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;")
+        results += db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);")
+        results += db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+        results += db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+
+        db.delete_tables(tbl_names)
+        self.assertTrue(len(mss) == 300 and len(results) == 0)
 
     def test_dc_like_hospital(self):
         rules = [("hospital", "SELECT hospital.* FROM hospital AS hospital1, hospital AS hospital2 WHERE lower(hospital1.condition) = lower(hospital2.condition) AND lower(hospital1.MeasureName) = lower(hospital2.MeasureName) AND "

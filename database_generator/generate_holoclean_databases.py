@@ -81,12 +81,12 @@ def add_dups(filename, frag_size, num_errors, num_dups, dcs):
 def write_to_csv_errors(fname, error_num, data, encode = False):
     """write rows to CSV file"""
     if not encode:
-        with open(fname+'_' + str(error_num) + "_errors.csv", 'w', newline='\n') as csvFile:
+        with open(fname+'_' + str(error_num) + "_errors_2.csv", 'w', newline='\n') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(data[1:])
         csvFile.close()
     else:
-        with open(fname+'_' + str(error_num) + "_errors.csv", 'w', newline='\n', encoding='utf-8') as csvFile:
+        with open(fname+'_' + str(error_num) + "_errors_2.csv", 'w', newline='\n', encoding='utf-8') as csvFile:
             writer = csv.writer(csvFile)
             writer.writerows(data)
         csvFile.close()
@@ -158,28 +158,32 @@ def convert_from_holoclean_analysis_format(path, filename):
 # equal oid, not equal org_name
 dcs = [[0, 1], [0, 2], [0, 3], [2, 3]] #
 row_num = 1000
-path = "..\\data\\holocomp"
+path = "..\\data\\holocomp\\"
 
 # Create files with set number of rows and increasing errors
-# for error_num in [100, 200, 300, 500, 700, 1000]:
-#     error_data, orig_data, errornous_tuples_num = add_errs("author_2000_distinct.csv", row_num, error_num, dcs)
-#     write_to_csv_errors(path + 'hauthor', error_num, error_data)
-#     write_to_csv_errors(path + 'holoclean_hauthor', error_num, error_data, encode = True)
-#     write_to_csv_errors(path + 'holoclean_hauthor_clean', error_num, orig_data, encode = True)
+for error_num in [0]:#100, 200, 300, 500, 700,
+    error_data, orig_data, errornous_tuples_num = add_errs(path + "author_2000_distinct.csv", row_num, error_num, dcs)
+    write_to_csv_errors(path + 'hauthor', error_num, error_data)
+    write_to_csv_errors(path + 'holoclean_hauthor', error_num, error_data, encode = True)
+    write_to_csv_errors(path + 'holoclean_hauthor_clean', error_num, orig_data, encode = True)
+    # write_to_csv_errors(path + 'hauthor_clean', error_num, orig_data, encode = False)
 
 # Create files with set number of errors and increasing rows
 # error_num = 700
-# for dups in [2, 3, 4, 5, 6, 7, 8]:
-#     error_data, orig_data, errornous_tuples_num = add_dups("author_2000_distinct.csv", row_num, error_num, dups, dcs)
-#     write_to_csv_rows(path + 'hauthor', dups, row_num, error_data)
+# # dups_lst = [2, 3, 4, 5, 6, 7, 8]
+# dups_lst = [10,20,30,40]
+# for dups in dups_lst:
+#     error_data, orig_data, errornous_tuples_num = add_dups(path + "author_2000_distinct.csv", row_num, error_num, dups, dcs)
+#     # write_to_csv_rows(path + 'hauthor', dups, row_num, error_data)
 #     write_to_csv_rows(path + 'holoclean_hauthor', dups, row_num, error_data, encode = True)
 #     write_to_csv_rows(path + 'holoclean_hauthor_clean', dups, row_num, orig_data, encode = True)
 
 
-err = [100, 200, 300, 500, 700, 1000]
-for e in err:
-    convert_to_holoclean_analysis_format('..\\data\\holocomp','holoclean_hauthor_clean_' + str(e) +'_errors')
+# err = [100, 200, 300, 500, 700, 1000]
+# for e in err:
+#     convert_to_holoclean_analysis_format('..\\data\\holocomp','holoclean_hauthor_clean_' + str(e) +'_errors')
 
-rows = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
-for r in rows:
-    convert_to_holoclean_analysis_format('..\\data\\holocomp','holoclean_hauthor_clean_' + str(r) +'_rows')
+# rows = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
+# rows = [10000, 20000, 30000, 40000]
+# for r in rows:
+#     convert_to_holoclean_analysis_format('..\\data\\holocomp','holoclean_hauthor_clean_' + str(r) +'_rows')

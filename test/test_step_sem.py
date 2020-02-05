@@ -469,7 +469,7 @@ class TestStepSemantics(unittest.TestCase):
                  ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
                  # ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
                  ]
-        tbl_names = ["hauthor_1000_errors"]
+        tbl_names = ["hauthor_500_errors"]
         db = DatabaseEngine("cr")
 
         # reset the database
@@ -477,11 +477,20 @@ class TestStepSemantics(unittest.TestCase):
         db.load_database_tables(tbl_names)
 
         step_sem = StepSemantics(db, rules, ["hauthor"])
-        mss = step_sem.find_mss(self.mas_schema, suffix="_1000_errors")
+        mss = step_sem.find_mss(self.mas_schema, suffix="_500_errors")
+
+        # reset the database
+        db.delete_tables(tbl_names)
+        db.load_database_tables(tbl_names)
+        db.delete(["hauthor"], set([t[1] for t in mss]))
+        results = db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND hauthor1.oid <> hauthor2.oid;")
+        results += db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.name) <> lower(hauthor2.name);")
+        results += db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.aid = hauthor2.aid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
+        results += db.execute_query("SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
 
         db.delete_tables(tbl_names)
         print(len(mss))
-        self.assertTrue(len(mss) == 200)
+        self.assertTrue(len(results) == 0)
 
 
     def test_tpch(self):

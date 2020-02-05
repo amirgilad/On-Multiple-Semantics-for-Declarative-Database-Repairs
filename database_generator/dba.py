@@ -176,42 +176,55 @@ class DatabaseEngine():
         cursor.close()
         return rows_affected
 
-    def create_deltas(self):
-        # hard coded for dblp and tpch
-        create_queries_prov = [
-            'CREATE TABLE Delta_author (aid int, name varchar(60), oid int);',
-            'CREATE TABLE Delta_publication (pid int, title varchar(200), year int);',
-            'CREATE TABLE Delta_writes (aid int, pid int);',
-            'CREATE TABLE Delta_cite (citing int, cited int);',
-            'CREATE TABLE Delta_organization (oid int, name varchar(150));'
+    def create_tables(self, schema):
+        # hard coded for dblp, tpch and holoclean comparison
+        create_queries_prov_mas = [
+            'CREATE TABLE IF NOT EXISTS author (aid int, name varchar(60), oid int);',
+            'CREATE TABLE IF NOT EXISTS publication (pid int, title varchar(200), year int);',
+            'CREATE TABLE IF NOT EXISTS writes (aid int, pid int);',
+            'CREATE TABLE IF NOT EXISTS cite (citing int, cited int);',
+            'CREATE TABLE IF NOT EXISTS organization (oid int, name varchar(150));',
+            'CREATE TABLE IF NOT EXISTS Delta_author (aid int, name varchar(60), oid int);',
+            'CREATE TABLE IF NOT EXISTS Delta_publication (pid int, title varchar(200), year int);',
+            'CREATE TABLE IF NOT EXISTS Delta_writes (aid int, pid int);',
+            'CREATE TABLE IF NOT EXISTS Delta_cite (citing int, cited int);',
+            'CREATE TABLE IF NOT EXISTS Delta_organization (oid int, name varchar(150));'
         ]
         create_queries_prov_tpch = [
-        "CREATE TABLE delta_customer (C_CUSTKEY int NOT NULL, C_NAME varchar(25) NOT NULL, C_ADDRESS varchar(40) NOT NULL, C_NATIONKEY int NOT NULL, C_PHONE char(15) NOT NULL, C_ACCTBAL decimal(15,2) NOT NULL, C_MKTSEGMENT char(10) NOT NULL, C_COMMENT varchar(117) NOT NULL);",
-        "CREATE TABLE delta_lineitem (L_ORDERKEY int NOT NULL, L_PARTKEY int NOT NULL, L_SUPPKEY int NOT NULL, L_LINENUMBER int NOT NULL, L_QUANTITY decimal(15,2) NOT NULL, L_EXTENDEDPRICE decimal(15,2) NOT NULL, L_DISCOUNT decimal(15,2) NOT NULL, L_TAX decimal(15,2) NOT NULL, L_RETURNFLAG char(1) NOT NULL, L_LINESTATUS char(1) NOT NULL, L_SHIPDATE date NOT NULL, L_COMMITDATE date NOT NULL, L_RECEIPTDATE date NOT NULL, L_SHIPINSTRUCT char(25) NOT NULL, L_SHIPMODE char(10) NOT NULL, L_COMMENT varchar(44) NOT NULL);",
-        "CREATE TABLE delta_nation (N_NATIONKEY int NOT NULL, N_NAME char(25) NOT NULL, N_REGIONKEY int NOT NULL, N_COMMENT varchar(152) DEFAULT NULL);",
-        "CREATE TABLE delta_orders (O_ORDERKEY int NOT NULL, O_CUSTKEY int NOT NULL, O_ORDERSTATUS char(1) NOT NULL, O_TOTALPRICE decimal(15,2) NOT NULL, O_ORDERDATE date NOT NULL, O_ORDERPRIORITY char(15) NOT NULL, O_CLERK char(15) NOT NULL, O_SHIPPRIORITY int NOT NULL, O_COMMENT varchar(79) NOT NULL);",
-        "CREATE TABLE delta_part (P_PARTKEY int NOT NULL, P_NAME varchar(55) NOT NULL, P_MFGR char(25) NOT NULL, P_BRAND char(10) NOT NULL, P_TYPE varchar(25) NOT NULL, P_SIZE int NOT NULL, P_CONTAINER char(10) NOT NULL, P_RETAILPRICE decimal(15,2) NOT NULL, P_COMMENT varchar(23) NOT NULL);",
-        "CREATE TABLE delta_partsupp (PS_PARTKEY int NOT NULL, PS_SUPPKEY int NOT NULL, PS_AVAILQTY int NOT NULL, PS_SUPPLYCOST decimal(15,2) NOT NULL, PS_COMMENT varchar(199) NOT NULL);",
-        "CREATE TABLE delta_region (R_REGIONKEY int NOT NULL, R_NAME char(25) NOT NULL, R_COMMENT varchar(152) DEFAULT NULL);",
-        "CREATE TABLE delta_supplier (S_SUPPKEY int NOT NULL, S_NAME char(25) NOT NULL, S_ADDRESS varchar(40) NOT NULL, S_NATIONKEY int NOT NULL, S_PHONE char(15) NOT NULL, S_ACCTBAL decimal(15,2) NOT NULL, S_COMMENT varchar(101) NOT NULL);"
-        ]
-        create_queries_prov_tpch = [
-            "CREATE TABLE customer (C_CUSTKEY int NOT NULL, C_NAME varchar(25) NOT NULL, C_ADDRESS varchar(40) NOT NULL, C_NATIONKEY int NOT NULL, C_PHONE char(15) NOT NULL, C_ACCTBAL decimal(15,2) NOT NULL, C_MKTSEGMENT char(10) NOT NULL, C_COMMENT varchar(117) NOT NULL);",
-            "CREATE TABLE lineitem (L_ORDERKEY int NOT NULL, L_PARTKEY int NOT NULL, L_SUPPKEY int NOT NULL, L_LINENUMBER int NOT NULL, L_QUANTITY decimal(15,2) NOT NULL, L_EXTENDEDPRICE decimal(15,2) NOT NULL, L_DISCOUNT decimal(15,2) NOT NULL, L_TAX decimal(15,2) NOT NULL, L_RETURNFLAG char(1) NOT NULL, L_LINESTATUS char(1) NOT NULL, L_SHIPDATE date NOT NULL, L_COMMITDATE date NOT NULL, L_RECEIPTDATE date NOT NULL, L_SHIPINSTRUCT char(25) NOT NULL, L_SHIPMODE char(10) NOT NULL, L_COMMENT varchar(44) NOT NULL);",
-            "CREATE TABLE nation (N_NATIONKEY int NOT NULL, N_NAME char(25) NOT NULL, N_REGIONKEY int NOT NULL, N_COMMENT varchar(152) DEFAULT NULL);",
-            "CREATE TABLE orders (O_ORDERKEY int NOT NULL, O_CUSTKEY int NOT NULL, O_ORDERSTATUS char(1) NOT NULL, O_TOTALPRICE decimal(15,2) NOT NULL, O_ORDERDATE date NOT NULL, O_ORDERPRIORITY char(15) NOT NULL, O_CLERK char(15) NOT NULL, O_SHIPPRIORITY int NOT NULL, O_COMMENT varchar(79) NOT NULL);",
-            "CREATE TABLE part (P_PARTKEY int NOT NULL, P_NAME varchar(55) NOT NULL, P_MFGR char(25) NOT NULL, P_BRAND char(10) NOT NULL, P_TYPE varchar(25) NOT NULL, P_SIZE int NOT NULL, P_CONTAINER char(10) NOT NULL, P_RETAILPRICE decimal(15,2) NOT NULL, P_COMMENT varchar(23) NOT NULL);",
-            "CREATE TABLE partsupp (PS_PARTKEY int NOT NULL, PS_SUPPKEY int NOT NULL, PS_AVAILQTY int NOT NULL, PS_SUPPLYCOST decimal(15,2) NOT NULL, PS_COMMENT varchar(199) NOT NULL);",
-            "CREATE TABLE region (R_REGIONKEY int NOT NULL, R_NAME char(25) NOT NULL, R_COMMENT varchar(152) DEFAULT NULL);",
-            "CREATE TABLE supplier (S_SUPPKEY int NOT NULL, S_NAME char(25) NOT NULL, S_ADDRESS varchar(40) NOT NULL, S_NATIONKEY int NOT NULL, S_PHONE char(15) NOT NULL, S_ACCTBAL decimal(15,2) NOT NULL, S_COMMENT varchar(101) NOT NULL);"
+            "CREATE TABLE IF NOT EXISTS delta_customer (C_CUSTKEY int NOT NULL, C_NAME varchar(25) NOT NULL, C_ADDRESS varchar(40) NOT NULL, C_NATIONKEY int NOT NULL, C_PHONE char(15) NOT NULL, C_ACCTBAL decimal(15,2) NOT NULL, C_MKTSEGMENT char(10) NOT NULL, C_COMMENT varchar(117) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_lineitem (L_ORDERKEY int NOT NULL, L_PARTKEY int NOT NULL, L_SUPPKEY int NOT NULL, L_LINENUMBER int NOT NULL, L_QUANTITY decimal(15,2) NOT NULL, L_EXTENDEDPRICE decimal(15,2) NOT NULL, L_DISCOUNT decimal(15,2) NOT NULL, L_TAX decimal(15,2) NOT NULL, L_RETURNFLAG char(1) NOT NULL, L_LINESTATUS char(1) NOT NULL, L_SHIPDATE date NOT NULL, L_COMMITDATE date NOT NULL, L_RECEIPTDATE date NOT NULL, L_SHIPINSTRUCT char(25) NOT NULL, L_SHIPMODE char(10) NOT NULL, L_COMMENT varchar(44) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_nation (N_NATIONKEY int NOT NULL, N_NAME char(25) NOT NULL, N_REGIONKEY int NOT NULL, N_COMMENT varchar(152) DEFAULT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_orders (O_ORDERKEY int NOT NULL, O_CUSTKEY int NOT NULL, O_ORDERSTATUS char(1) NOT NULL, O_TOTALPRICE decimal(15,2) NOT NULL, O_ORDERDATE date NOT NULL, O_ORDERPRIORITY char(15) NOT NULL, O_CLERK char(15) NOT NULL, O_SHIPPRIORITY int NOT NULL, O_COMMENT varchar(79) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_part (P_PARTKEY int NOT NULL, P_NAME varchar(55) NOT NULL, P_MFGR char(25) NOT NULL, P_BRAND char(10) NOT NULL, P_TYPE varchar(25) NOT NULL, P_SIZE int NOT NULL, P_CONTAINER char(10) NOT NULL, P_RETAILPRICE decimal(15,2) NOT NULL, P_COMMENT varchar(23) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_partsupp (PS_PARTKEY int NOT NULL, PS_SUPPKEY int NOT NULL, PS_AVAILQTY int NOT NULL, PS_SUPPLYCOST decimal(15,2) NOT NULL, PS_COMMENT varchar(199) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_region (R_REGIONKEY int NOT NULL, R_NAME char(25) NOT NULL, R_COMMENT varchar(152) DEFAULT NULL);",
+            "CREATE TABLE IF NOT EXISTS delta_supplier (S_SUPPKEY int NOT NULL, S_NAME char(25) NOT NULL, S_ADDRESS varchar(40) NOT NULL, S_NATIONKEY int NOT NULL, S_PHONE char(15) NOT NULL, S_ACCTBAL decimal(15,2) NOT NULL, S_COMMENT varchar(101) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS customer (C_CUSTKEY int NOT NULL, C_NAME varchar(25) NOT NULL, C_ADDRESS varchar(40) NOT NULL, C_NATIONKEY int NOT NULL, C_PHONE char(15) NOT NULL, C_ACCTBAL decimal(15,2) NOT NULL, C_MKTSEGMENT char(10) NOT NULL, C_COMMENT varchar(117) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS lineitem (L_ORDERKEY int NOT NULL, L_PARTKEY int NOT NULL, L_SUPPKEY int NOT NULL, L_LINENUMBER int NOT NULL, L_QUANTITY decimal(15,2) NOT NULL, L_EXTENDEDPRICE decimal(15,2) NOT NULL, L_DISCOUNT decimal(15,2) NOT NULL, L_TAX decimal(15,2) NOT NULL, L_RETURNFLAG char(1) NOT NULL, L_LINESTATUS char(1) NOT NULL, L_SHIPDATE date NOT NULL, L_COMMITDATE date NOT NULL, L_RECEIPTDATE date NOT NULL, L_SHIPINSTRUCT char(25) NOT NULL, L_SHIPMODE char(10) NOT NULL, L_COMMENT varchar(44) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS nation (N_NATIONKEY int NOT NULL, N_NAME char(25) NOT NULL, N_REGIONKEY int NOT NULL, N_COMMENT varchar(152) DEFAULT NULL);",
+            "CREATE TABLE IF NOT EXISTS orders (O_ORDERKEY int NOT NULL, O_CUSTKEY int NOT NULL, O_ORDERSTATUS char(1) NOT NULL, O_TOTALPRICE decimal(15,2) NOT NULL, O_ORDERDATE date NOT NULL, O_ORDERPRIORITY char(15) NOT NULL, O_CLERK char(15) NOT NULL, O_SHIPPRIORITY int NOT NULL, O_COMMENT varchar(79) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS part (P_PARTKEY int NOT NULL, P_NAME varchar(55) NOT NULL, P_MFGR char(25) NOT NULL, P_BRAND char(10) NOT NULL, P_TYPE varchar(25) NOT NULL, P_SIZE int NOT NULL, P_CONTAINER char(10) NOT NULL, P_RETAILPRICE decimal(15,2) NOT NULL, P_COMMENT varchar(23) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS partsupp (PS_PARTKEY int NOT NULL, PS_SUPPKEY int NOT NULL, PS_AVAILQTY int NOT NULL, PS_SUPPLYCOST decimal(15,2) NOT NULL, PS_COMMENT varchar(199) NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS region (R_REGIONKEY int NOT NULL, R_NAME char(25) NOT NULL, R_COMMENT varchar(152) DEFAULT NULL);",
+            "CREATE TABLE IF NOT EXISTS supplier (S_SUPPKEY int NOT NULL, S_NAME char(25) NOT NULL, S_ADDRESS varchar(40) NOT NULL, S_NATIONKEY int NOT NULL, S_PHONE char(15) NOT NULL, S_ACCTBAL decimal(15,2) NOT NULL, S_COMMENT varchar(101) NOT NULL);"
         ]
         create_queries_prov_holo = [
-            "CREATE TABLE Delta_hospital (ProviderNumber varchar(10), HospitalName varchar(40), Address1 varchar(40), City varchar(20), State char(5), Zipcode char(7), CountyName char(20), PhoneNumber char(10), HospitalType char(25), HospitalOwner char(100), EmergencyService char(7), Condition varchar(100), MeasureCode varchar(25), MeasureName varchar(200), Score varchar(5), Sample varchar(20), Stateavg varchar(20));"
-            "CREATE TABLE Delta_hauthor (aid int, name varchar(60), oid int, organization varchar(100));",
-            "CREATE TABLE Delta_flights (src char(40), flight varchar(60), scheduled_dept varchar(60), actual_dept varchar(60), dept_gate varchar(50), scheduled_arrival  varchar(60), arrival_gate varchar(50));"
+            "CREATE TABLE IF NOT EXISTS hauthor (aid int, name varchar(60), oid int, organization varchar(100));",
+            "CREATE TABLE IF NOT EXISTS hospital (ProviderNumber varchar(10), HospitalName varchar(40), Address1 varchar(40), City varchar(20), State char(5), Zipcode char(7), CountyName char(20), PhoneNumber char(10), HospitalType char(25), HospitalOwner char(100), EmergencyService char(7), Condition varchar(100), MeasureCode varchar(25), MeasureName varchar(200), Score varchar(5), Sample varchar(20), Stateavg varchar(20));",
+            "CREATE TABLE IF NOT EXISTS flights (src char(40), flight varchar(60), scheduled_dept varchar(60), actual_dept varchar(60), dept_gate varchar(50), scheduled_arrival  varchar(60), arrival_gate varchar(50));",
+            "CREATE TABLE IF NOT EXISTS Delta_hospital (ProviderNumber varchar(10), HospitalName varchar(40), Address1 varchar(40), City varchar(20), State char(5), Zipcode char(7), CountyName char(20), PhoneNumber char(10), HospitalType char(25), HospitalOwner char(100), EmergencyService char(7), Condition varchar(100), MeasureCode varchar(25), MeasureName varchar(200), Score varchar(5), Sample varchar(20), Stateavg varchar(20));"
+            "CREATE TABLE IF NOT EXISTS Delta_hauthor (aid int, name varchar(60), oid int, organization varchar(100));",
+            "CREATE TABLE IF NOT EXISTS Delta_flights (src char(40), flight varchar(60), scheduled_dept varchar(60), actual_dept varchar(60), dept_gate varchar(50), scheduled_arrival  varchar(60), arrival_gate varchar(50));"
         ]
         cursor = self.connection.cursor()
-        for cq in create_queries_prov:
+        queries = []
+        if schema == self.mas_schema:
+            queries = create_queries_prov_mas
+        elif schema == self.tpc_h_schema:
+            queries = create_queries_prov_tpch
+        else:
+            queries = create_queries_prov_holo
+        for cq in queries:
             cursor.execute(cq)
         self.connection.commit()
         cursor.close()
@@ -221,8 +234,10 @@ class DatabaseEngine():
             # specific for HoloClean experiments
             if any(char.isdigit() for char in name):
                 name = name.split("_")[0]
-            self.execute_query("DELETE FROM " + name + ";")
-            self.execute_query("DELETE FROM " + "delta_" + name + ";")
+            # self.execute_query("DELETE FROM " + name + ";")
+            # self.execute_query("DELETE FROM " + "delta_" + name + ";")
+            self.execute_query("DROP TABLE IF EXISTS " + name + ";")
+            self.execute_query("DROP TABLE IF EXISTS " + "delta_" + name + ";")
 
     def load_database_tables(self, lst_names, is_delta=False):
 
@@ -238,6 +253,7 @@ class DatabaseEngine():
         else:
             schema = self.holocomp_schema
             path = "..\\data\\holocomp\\"
+        self.create_tables(schema) # create tables if they do not exists
         cursor = self.connection.cursor()
         for name in lst_names:
             # specific for HoloClean experiments
