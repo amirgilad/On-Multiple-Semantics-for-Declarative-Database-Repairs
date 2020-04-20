@@ -1,7 +1,8 @@
 from database_generator.dba import DatabaseEngine
-from semantics import Semantics
+from old.semantics import Semantics
 import logging
-import provenanceHandler as ph
+from old import provenanceHandler as ph
+
 # from provFormula import solve
 
 logging.basicConfig(filename='log.log',level=logging.DEBUG)

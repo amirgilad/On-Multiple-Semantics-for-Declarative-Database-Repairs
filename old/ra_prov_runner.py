@@ -9,7 +9,7 @@ from tt import BooleanExpression, to_cnf
 import pyparsing # make sure you have this installed
 
 
-from query_rewriter import add_prov
+from old.query_rewriter import add_prov
 logger = logging.getLogger('Runner')
 
 

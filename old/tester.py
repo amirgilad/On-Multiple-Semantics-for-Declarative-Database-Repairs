@@ -1,7 +1,6 @@
 from database_generator.dba import DatabaseEngine
-from semantics import Semantics
-import DependecyRemover as dr
-
+from old.semantics import Semantics
+from old import DependecyRemover as dr
 
 db_conn = DatabaseEngine()
 

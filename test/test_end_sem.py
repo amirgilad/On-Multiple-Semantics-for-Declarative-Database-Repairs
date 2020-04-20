@@ -192,7 +192,7 @@ class TestEndSemantics(unittest.TestCase):
                  ("hauthor", "SELECT hauthor1.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
                  # ("hauthor", "SELECT hauthor2.* FROM hauthor AS hauthor1, hauthor AS hauthor2 WHERE hauthor1.oid = hauthor2.oid AND lower(hauthor1.organization) <> lower(hauthor2.organization);")
                  ]
-        tbl_names = ["hauthor_1000_errors"]
+        tbl_names = ["hauthor_300_errors"]
         db = DatabaseEngine("cr")
 
         # reset the database

@@ -207,10 +207,13 @@ class HoloCompare:
         self.db.load_database_tables([fixed_name])
 
         data = []
+        total_set = set()
         dcs = self.programs[0]
         for dc in dcs:
+            total_set.update(set(self.db.execute_query(dc[1])))
             num_violations = len(set(self.db.execute_query(dc[1])))
             data.append([dc, num_violations])
+        data.append(["Total", len(total_set)])
         self.write_to_csv("holoclean_remaining_violations_"+ fixed_name +".csv", data)
 
     def check_zero_violations_semantics(self):
@@ -245,8 +248,8 @@ class HoloCompare:
 
 err_num = [100, 200, 300, 500, 700, 1000]
 ex = HoloCompare("holoclean_hauthor_programs.txt", err_num)
-ex.change_databases()
-# ex.count_violations()
+# ex.change_databases()
+ex.count_violations()
 # ex.count_violations_datbase("hauthor_100_errors")
 
 # row_num = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
