@@ -38,7 +38,7 @@ class DatabaseEngine():
         self.connection = None
         try:
             self.connection = psycopg2.connect(user = "postgres",
-                                               password = "Amiris1",
+                                               password = "Your Password Here",
                                                host = "127.0.0.1",
                                                port = "5432",
                                                database = db_name)
