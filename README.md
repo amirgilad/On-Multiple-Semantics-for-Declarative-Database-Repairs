@@ -24,6 +24,7 @@ computational complexity.
 
 ## Usage
 1. Create an empty database called "cr" in PostgerSQL manually
+3. Change the password in the dba.py file to your PostgerSQL password
 2. See running_example folder
 
 ## License
